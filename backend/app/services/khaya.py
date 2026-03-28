@@ -46,7 +46,7 @@ LANG_CODES = {
     "ga": "ga",  # Ga (translation pairs often use gaa)
 }
 
-# Khaya TTS supports tw, gaa, dag, ee, yo — not English (see Khaya SDK constants).
+# Khaya TTS supports tw, gaa, ee, yo — not English (see Khaya SDK constants).
 TTS_LANG_CODES = {
     "tw": "tw",
     "ee": "ee",

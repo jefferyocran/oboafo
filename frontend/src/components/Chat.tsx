@@ -36,7 +36,7 @@ function formatAssistantBody(answer: string, steps: string[], disclaimer: string
 }
 
 function appLanguageToDisplayLang(lang: Language): TranslateReplyLanguage {
-  if (lang === 'en' || lang === 'tw' || lang === 'ee' || lang === 'ga' || lang === 'dag') {
+  if (lang === 'en' || lang === 'tw' || lang === 'ee' || lang === 'ga') {
     return lang
   }
   return 'tw'
