@@ -1,36 +1,38 @@
 import type { Language } from '../types'
-import { LANGUAGE_LABELS } from '../types'
+import { LANGUAGE_LABELS, LANGUAGES } from '../types'
+import { T } from '../theme'
 
 interface LanguageSelectorProps {
   language: Language
   onChange: (lang: Language) => void
 }
 
-const LANGUAGES: Language[] = ['en', 'tw', 'ee', 'ga']
-
 export function LanguageSelector({ language, onChange }: LanguageSelectorProps) {
   return (
-    <div style={{ display: 'flex', gap: '6px' }}>
-      {LANGUAGES.map((lang) => (
-        <button
-          key={lang}
-          onClick={() => onChange(lang)}
-          style={{
-            padding: '4px 10px',
-            borderRadius: '999px',
-            border: '1px solid',
-            borderColor: language === lang ? '#d4a843' : '#374151',
-            background: language === lang ? '#d4a843' : 'transparent',
-            color: language === lang ? '#0d1117' : '#9ca3af',
-            fontSize: '0.8rem',
-            fontWeight: language === lang ? 700 : 400,
-            cursor: 'pointer',
-            transition: 'all 0.15s',
-          }}
-        >
-          {LANGUAGE_LABELS[lang]}
-        </button>
-      ))}
+    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+      {LANGUAGES.map((lang) => {
+        const active = language === lang
+        return (
+          <button
+            key={lang}
+            onClick={() => onChange(lang)}
+            style={{
+              padding: '4px 9px',
+              borderRadius: T.rFull,
+              border: `1.5px solid ${active ? T.gold : T.border}`,
+              background: active ? T.goldDim : 'transparent',
+              color: active ? T.gold : T.text3,
+              fontSize: '0.75rem',
+              fontWeight: active ? 700 : 400,
+              cursor: 'pointer',
+              transition: T.tx,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {LANGUAGE_LABELS[lang]}
+          </button>
+        )
+      })}
     </div>
   )
 }
