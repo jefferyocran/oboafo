@@ -28,7 +28,6 @@ const SPEECH_LANG: Record<Language, string> = {
   tw: 'ak-GH',
   ee: 'ee-GH',
   ga: 'gaa-GH',
-  dag: 'en-GH',
 }
 
 type RecordState = 'idle' | 'recording' | 'confirming' | 'denied'

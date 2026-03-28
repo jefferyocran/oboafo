@@ -35,7 +35,6 @@ const SPEECH_LANG: Record<string, string> = {
   tw: 'ak',
   ee: 'ee',
   ga: 'gaa',
-  dag: 'en-GH',
 }
 
 /** Strip markdown-ish noise so TTS reads more naturally. */

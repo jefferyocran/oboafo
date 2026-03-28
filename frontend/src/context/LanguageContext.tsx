@@ -7,7 +7,7 @@ function readStoredLanguage(): Language | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return null
-    if (raw === 'en' || raw === 'tw' || raw === 'ee' || raw === 'ga' || raw === 'dag') return raw
+    if (raw === 'en' || raw === 'tw' || raw === 'ee' || raw === 'ga') return raw
   } catch {
     /* ignore */
   }
