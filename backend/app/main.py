@@ -14,9 +14,16 @@ load_dotenv()
 async def lifespan(app: FastAPI):
     from app.services import rag
 
+    async def _warmup() -> None:
+        try:
+            await asyncio.to_thread(rag.warmup)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error("RAG warmup failed: %s", e)
+
     # Run warmup in background so uvicorn binds the port immediately.
     # Render kills the process if the port isn't open within the startup timeout.
-    asyncio.create_task(asyncio.to_thread(rag.warmup))
+    asyncio.create_task(_warmup())
     yield
 
 
