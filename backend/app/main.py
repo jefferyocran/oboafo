@@ -30,7 +30,9 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",   # Vite dev server
         "http://localhost:4173",   # Vite preview
-        "https://ghana-rights.vercel.app",  # Production (update as needed)
+        "https://ghana-rights.vercel.app",  # Vercel deployment
+        "https://oboafo.onrender.com",      # Render backend (same-origin)
+        "https://oboafo.netlify.app",       # Netlify deployment
     ],
     allow_credentials=True,
     allow_methods=["*"],
