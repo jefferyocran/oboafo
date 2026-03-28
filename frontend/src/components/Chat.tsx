@@ -1,148 +1,209 @@
 import { useState, useRef, useEffect } from 'react'
 import type { ChatMessage, Language } from '../types'
 import { ChatMessage as ChatMessageComponent } from './ChatMessage'
+import { SuggestedQuestions } from './SuggestedQuestions'
+import { VoiceInput } from './VoiceInput'
+import { Disclaimer } from './Disclaimer'
 import { useAsk } from '../hooks/useApi'
+import { T } from '../theme'
+
+const DEFAULT_SUGGESTIONS = [
+  'Can police search me without a warrant?',
+  'What are my rights if I\'m arrested?',
+  'Can my landlord evict me without notice?',
+  'Am I innocent until proven guilty in Ghana?',
+]
 
 interface ChatProps {
   language: Language
   isOnline: boolean
+  prefillQuestion?: string
+  onPrefillConsumed?: () => void
 }
 
-export function Chat({ language, isOnline }: ChatProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: 'welcome',
-      role: 'assistant',
-      content: 'Hello! I can help you understand your rights under the 1992 Constitution of Ghana. Ask me anything — for example: "Can police search me without a warrant?" or "What are my rights if I\'m arrested?"',
-      timestamp: new Date(),
-    },
-  ])
+export function Chat({ language, isOnline, prefillQuestion, onPrefillConsumed }: ChatProps) {
+  const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
+  const inputRef  = useRef<HTMLInputElement>(null)
   const { ask, loading } = useAsk()
+
+  const showWelcome = messages.length === 0
+
+  // Handle topic pre-fill
+  useEffect(() => {
+    if (prefillQuestion) {
+      setInput(prefillQuestion)
+      inputRef.current?.focus()
+      onPrefillConsumed?.()
+    }
+  }, [prefillQuestion, onPrefillConsumed])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    const text = input.trim()
-    if (!text || loading) return
+  async function sendMessage(text: string) {
+    const trimmed = text.trim()
+    if (!trimmed || loading) return
 
-    const userMessage: ChatMessage = {
-      id: `user-${Date.now()}`,
+    const userMsg: ChatMessage = {
+      id: `u-${Date.now()}`,
       role: 'user',
-      content: text,
+      content: trimmed,
       timestamp: new Date(),
     }
-
-    setMessages((prev) => [...prev, userMessage])
+    setMessages(prev => [...prev, userMsg])
     setInput('')
 
     if (!isOnline) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `offline-${Date.now()}`,
-          role: 'assistant',
-          content: "You're currently offline. The AI chat requires an internet connection. Please use Crisis Mode for instant offline help.",
-          timestamp: new Date(),
-        },
-      ])
+      setMessages(prev => [...prev, {
+        id: `sys-${Date.now()}`,
+        role: 'assistant',
+        content: "You're offline. The AI chat requires internet. Use 🆘 Crisis Mode for instant offline help.",
+        timestamp: new Date(),
+      }])
       return
     }
 
-    const response = await ask({ message: text, language })
+    // Loading bubble
+    const loadingId = `loading-${Date.now()}`
+    setMessages(prev => [...prev, { id: loadingId, role: 'assistant', content: '...', timestamp: new Date(), isLoading: true }])
+
+    const response = await ask({ message: trimmed, language })
+
+    setMessages(prev => prev.filter(m => m.id !== loadingId))
 
     if (response) {
-      const assistantMessage: ChatMessage = {
-        id: `assistant-${Date.now()}`,
+      const parts = [response.answer]
+      if (response.action_steps.length > 0) {
+        parts.push('\n**What to do:**\n' + response.action_steps.map((s, i) => `${i + 1}. ${s}`).join('\n'))
+      }
+      parts.push(`\n_${response.disclaimer}_`)
+
+      setMessages(prev => [...prev, {
+        id: `a-${Date.now()}`,
         role: 'assistant',
-        content: `${response.answer}\n\n${response.action_steps.length > 0 ? '**What to do:**\n' + response.action_steps.map((s, i) => `${i + 1}. ${s}`).join('\n') : ''}\n\n_${response.disclaimer}_`,
+        content: parts.join('\n'),
         articles: response.articles_cited,
         timestamp: new Date(),
-      }
-      setMessages((prev) => [...prev, assistantMessage])
+      }])
     } else {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `error-${Date.now()}`,
-          role: 'assistant',
-          content: 'Sorry, I could not process your request. Please try again.',
-          timestamp: new Date(),
-        },
-      ])
+      setMessages(prev => [...prev, {
+        id: `err-${Date.now()}`,
+        role: 'assistant',
+        content: 'Sorry, something went wrong. Please try again.',
+        timestamp: new Date(),
+      }])
     }
   }
 
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    sendMessage(input)
+  }
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{
-        flex: 1,
-        overflowY: 'auto',
-        padding: '16px',
-      }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: T.bg }}>
+
+      {/* Header */}
+      <div style={{ padding: '14px 16px', borderBottom: `1px solid ${T.border}`, background: T.surface, flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '1.3rem' }}>🤖</span>
+          <div>
+            <p style={{ margin: 0, fontWeight: 700, fontSize: '0.95rem', color: T.text }}>Ask Oboafo</p>
+            <p style={{ margin: 0, fontSize: '0.72rem', color: isOnline ? T.green : T.text3 }}>
+              {isOnline ? '● Online' : '● Offline — Chat unavailable'}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
+        {showWelcome && (
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{
+              background: T.surface,
+              border: `1px solid ${T.border}`,
+              borderRadius: T.rLg,
+              padding: '16px',
+              marginBottom: '16px',
+            }}>
+              <p style={{ margin: '0 0 6px', fontWeight: 700, color: T.text, fontSize: '0.95rem' }}>
+                Hello! I'm Oboafo 🇬🇭
+              </p>
+              <p style={{ margin: 0, color: T.text2, fontSize: '0.85rem', lineHeight: 1.6 }}>
+                I explain your rights under the 1992 Constitution of Ghana — in plain language.
+                Ask me anything, or choose a question below.
+              </p>
+            </div>
+            <SuggestedQuestions
+              questions={DEFAULT_SUGGESTIONS}
+              onSelect={sendMessage}
+            />
+          </div>
+        )}
+
         {messages.map((msg) => (
           <ChatMessageComponent key={msg.id} message={msg} />
         ))}
-        {loading && (
-          <div style={{ textAlign: 'left', color: '#6b7280', fontSize: '0.85rem', padding: '8px 0' }}>
-            Thinking...
-          </div>
-        )}
         <div ref={bottomRef} />
       </div>
 
-      <form
-        onSubmit={handleSubmit}
-        style={{
-          borderTop: '1px solid #1f2937',
-          padding: '12px 16px',
-          display: 'flex',
-          gap: '8px',
-        }}
-      >
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder={isOnline ? 'Ask about your rights...' : 'Offline — use Crisis Mode'}
-          disabled={loading}
-          style={{
-            flex: 1,
-            background: '#1a1f2e',
-            border: '1px solid #374151',
-            borderRadius: '8px',
-            color: '#e5e7eb',
-            padding: '10px 12px',
-            fontSize: '0.9rem',
-            outline: 'none',
-          }}
-        />
-        <button
-          type="submit"
-          disabled={loading || !input.trim()}
-          style={{
-            background: '#d4a843',
-            color: '#0d1117',
-            border: 'none',
-            borderRadius: '8px',
-            padding: '10px 16px',
-            fontWeight: 700,
-            fontSize: '0.9rem',
-            cursor: loading || !input.trim() ? 'not-allowed' : 'pointer',
-            opacity: loading || !input.trim() ? 0.5 : 1,
-          }}
-        >
-          Ask
-        </button>
-      </form>
-
-      <p style={{ textAlign: 'center', color: '#4b5563', fontSize: '0.7rem', padding: '4px 16px 8px' }}>
-        This is guidance, not legal advice. Consult a qualified lawyer for legal matters.
-      </p>
+      {/* Input area */}
+      <div style={{ borderTop: `1px solid ${T.border}`, background: T.surface, padding: '10px 12px', flexShrink: 0 }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '8px', alignItems: 'center', position: 'relative' }}>
+          <VoiceInput
+            language={language}
+            onTranscript={text => setInput(text)}
+            disabled={loading || !isOnline}
+          />
+          <input
+            ref={inputRef}
+            type="text"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            placeholder={isOnline ? 'Ask about your rights…' : 'Offline — use Crisis Mode'}
+            disabled={loading || !isOnline}
+            style={{
+              flex: 1,
+              background: T.surface2,
+              border: `1px solid ${T.border}`,
+              borderRadius: T.r,
+              color: T.text,
+              padding: '10px 12px',
+              fontSize: '0.9rem',
+              outline: 'none',
+              transition: T.tx,
+            }}
+            onFocus={e => { e.target.style.borderColor = T.gold }}
+            onBlur={e => { e.target.style.borderColor = T.border }}
+          />
+          <button
+            type="submit"
+            disabled={loading || !input.trim() || !isOnline}
+            style={{
+              background: T.gold,
+              color: T.bg,
+              border: 'none',
+              borderRadius: T.r,
+              padding: '10px 14px',
+              fontWeight: 700,
+              fontSize: '0.85rem',
+              cursor: (loading || !input.trim() || !isOnline) ? 'not-allowed' : 'pointer',
+              opacity: (loading || !input.trim() || !isOnline) ? 0.45 : 1,
+              flexShrink: 0,
+              transition: T.tx,
+            }}
+          >
+            {loading ? '…' : 'Ask'}
+          </button>
+        </form>
+        <div style={{ marginTop: '8px' }}>
+          <Disclaimer compact />
+        </div>
+      </div>
     </div>
   )
 }

@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
-from app.routes import ask, crisis
+from app.routes import ask, crisis, transcribe
 
 load_dotenv()
 
@@ -26,6 +26,7 @@ app.add_middleware(
 
 app.include_router(ask.router, prefix="/api")
 app.include_router(crisis.router, prefix="/api")
+app.include_router(transcribe.router, prefix="/api")
 
 
 @app.get("/health")
