@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { API_BASE } from '../config'
 import type {
   AskRequest,
   AskResponse,
@@ -10,8 +11,6 @@ import type {
   TranslateTextRequest,
   TranslateTextResponse,
 } from '../types'
-
-const API_BASE = '/api'
 
 function truncateMessage(s: string, max: number): string {
   const t = s.trim()

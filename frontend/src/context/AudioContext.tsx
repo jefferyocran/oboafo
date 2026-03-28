@@ -1,9 +1,14 @@
 /**
  * Global audio manager — one stream at a time.
- * Prefers Khaya TTS via POST /api/tts (Ghanaian voices); falls back to Web Speech API on failure.
- * Set VITE_TTS_USE_KHAYA=false to use only the browser.
+ * When the user taps Listen, we use Khaya TTS via POST /api/tts whenever Khaya is enabled
+ * (VITE_TTS_USE_KHAYA is not `false`). Ghanaian languages map directly; English uses a Khaya
+ * voice (default Twi engine) unless VITE_TTS_KHAYA_VOICE_FOR_EN=none|false.
+ * Unknown language codes still call Khaya with the Twi voice.
+ * If Khaya fails, we optionally fall back to Web Speech (VITE_TTS_BROWSER_FALLBACK=false disables).
+ * Set VITE_TTS_USE_KHAYA=false to use only the browser for all playback.
  */
 import { createContext, useContext, useRef, useState, useCallback } from 'react'
+import { API_BASE } from '../config'
 import type { AudioState } from '../types'
 
 interface AudioContextValue {
@@ -20,13 +25,35 @@ const AudioCtx = createContext<AudioContextValue>({
   stop: () => {},
 })
 
-const API_BASE = '/api'
-
 const USE_KHAYA_TTS = import.meta.env.VITE_TTS_USE_KHAYA !== 'false'
+const BROWSER_FALLBACK_ON_KHAYA_ERROR = import.meta.env.VITE_TTS_BROWSER_FALLBACK !== 'false'
 
-/** Khaya TTS supports Twi, Ewe, Ga (not English — use Web Speech). */
-function shouldUseKhayaBackend(lang: string): boolean {
-  return USE_KHAYA_TTS && lang !== 'en'
+/** Language codes accepted by POST /api/tts → Khaya (see backend TTS_LANG_CODES). */
+const KHAYA_TTS_CODES = new Set(['tw', 'ee', 'ga', 'dag'])
+
+/**
+ * Which Khaya voice to use when the content language is English (Khaya has no en TTS).
+ * Defaults to `tw` so Listen still calls the Khaya API. Set VITE_TTS_KHAYA_VOICE_FOR_EN=none to use Web Speech for en.
+ */
+function khayaVoiceCodeForEnglish(): string | null {
+  const raw = import.meta.env.VITE_TTS_KHAYA_VOICE_FOR_EN
+  const lowered = raw?.trim().toLowerCase()
+  if (lowered === 'none' || lowered === 'false') return null
+  const code = (raw?.trim() || 'tw').toLowerCase()
+  return KHAYA_TTS_CODES.has(code) ? code : null
+}
+
+/**
+ * Resolves the `language` field sent to /api/tts, or null → Web Speech only (Khaya disabled).
+ * Any unrecognized code still uses Khaya with the Twi engine so Listen always hits the API when Khaya is on.
+ */
+function resolveKhayaApiLanguage(uiLang: string): string | null {
+  if (!USE_KHAYA_TTS) return null
+  const l = uiLang.trim().toLowerCase()
+  if (!l) return khayaVoiceCodeForEnglish()
+  if (KHAYA_TTS_CODES.has(l)) return l
+  if (l === 'en') return khayaVoiceCodeForEnglish()
+  return 'tw'
 }
 
 // Map app language codes → BCP-47 for Web Speech API fallback
@@ -137,11 +164,11 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       setActiveId(id)
       setAudioState('loading')
 
-      const runKhaya = async () => {
+      const runKhaya = async (apiLang: string) => {
         const ac = new AbortController()
         abortRef.current = ac
         try {
-          const blob = await fetchKhayaTts(plain, lang, ac.signal)
+          const blob = await fetchKhayaTts(plain, apiLang, ac.signal)
           if (ac.signal.aborted) return
           const url = URL.createObjectURL(blob)
           blobUrlRef.current = url
@@ -155,21 +182,46 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
           }
           audio.onerror = () => {
             cleanupKhaya()
-            setAudioState('loading')
-            speakWithWebSpeech(
-              plain,
-              lang,
-              () => setAudioState('playing'),
-              () => {
-                setActiveId(null)
-                setAudioState('idle')
-              },
-            )
+            if (BROWSER_FALLBACK_ON_KHAYA_ERROR) {
+              setAudioState('loading')
+              speakWithWebSpeech(
+                plain,
+                lang,
+                () => setAudioState('playing'),
+                () => {
+                  setActiveId(null)
+                  setAudioState('idle')
+                },
+              )
+            } else {
+              setActiveId(null)
+              setAudioState('idle')
+            }
           }
           try {
             await audio.play()
           } catch {
             cleanupKhaya()
+            if (BROWSER_FALLBACK_ON_KHAYA_ERROR) {
+              speakWithWebSpeech(
+                plain,
+                lang,
+                () => setAudioState('playing'),
+                () => {
+                  setActiveId(null)
+                  setAudioState('idle')
+                },
+              )
+            } else {
+              setActiveId(null)
+              setAudioState('idle')
+            }
+            return
+          }
+        } catch {
+          if (ac.signal.aborted) return
+          cleanupKhaya()
+          if (BROWSER_FALLBACK_ON_KHAYA_ERROR) {
             speakWithWebSpeech(
               plain,
               lang,
@@ -179,25 +231,16 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
                 setAudioState('idle')
               },
             )
-            return
+          } else {
+            setActiveId(null)
+            setAudioState('idle')
           }
-        } catch {
-          if (ac.signal.aborted) return
-          cleanupKhaya()
-          speakWithWebSpeech(
-            plain,
-            lang,
-            () => setAudioState('playing'),
-            () => {
-              setActiveId(null)
-              setAudioState('idle')
-            },
-          )
         }
       }
 
-      if (shouldUseKhayaBackend(lang)) {
-        void runKhaya()
+      const khayaApiLang = resolveKhayaApiLanguage(lang)
+      if (khayaApiLang) {
+        void runKhaya(khayaApiLang)
       } else {
         speakWithWebSpeech(
           plain,

@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 
 import asyncio
@@ -12,6 +13,10 @@ load_dotenv()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # On Vercel, skip eager warmup so /health stays fast; RAG loads on first /api/ask.
+    if os.getenv("VERCEL"):
+        yield
+        return
     from app.services import rag
 
     await asyncio.to_thread(rag.warmup)
@@ -25,13 +30,16 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+_extra_origins = [o.strip() for o in (os.getenv("CORS_EXTRA_ORIGINS") or "").split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",   # Vite dev server
-        "http://localhost:4173",   # Vite preview
-        "https://ghana-rights.vercel.app",  # Production (update as needed)
+        "http://localhost:5173",
+        "http://localhost:4173",
+        "https://ghana-rights.vercel.app",
+        *_extra_origins,
     ],
+    allow_origin_regex=r"https://([a-z0-9-]+\.)*vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
