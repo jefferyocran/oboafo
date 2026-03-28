@@ -1,4 +1,30 @@
-import type { Topic } from '../types'
+export interface TopicSection {
+  heading: string
+  points: string[]
+}
+
+export interface SourceCitation {
+  label: string
+  reference: string
+}
+
+export interface Topic {
+  id: string
+  emoji: string
+  title: string
+  subtitle: string
+  color: string
+  articles: string[]
+  sections: {
+    know: TopicSection
+    do: TopicSection
+    watchout: TopicSection
+  }
+  keyFacts: string[]
+  relatedTopics: string[]
+  sources: SourceCitation[]
+  suggestedQuestions: string[]
+}
 
 export const TOPICS: Topic[] = [
   {
