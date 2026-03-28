@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { OboafoLogo } from './OboafoLogo'
-import { LanguageSelector } from './LanguageSelector'
-import { useLanguage } from '../context/LanguageContext'
 import { T } from '../theme'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 
@@ -18,7 +16,6 @@ const navLinkStyle = ({ isActive }: { isActive: boolean }) => ({
 })
 
 export function MainNav() {
-  const { language, setLanguage } = useLanguage()
   const [solid, setSolid] = useState(false)
   const isDesktop = useMediaQuery('(min-width: 768px)')
 
@@ -87,45 +84,6 @@ export function MainNav() {
           </nav>
         )}
 
-        <div
-          style={{
-            marginLeft: isDesktop ? 0 : 'auto',
-            display: 'flex',
-            alignItems: 'center',
-            gap: T.sp(1.5),
-            flexWrap: 'wrap',
-          }}
-        >
-          <LanguageSelector language={language} onChange={setLanguage} variant="select" />
-          <Link
-            to="/ask"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              minHeight: 48,
-              padding: '0 20px',
-              borderRadius: T.rFull,
-              background: T.accent,
-              color: T.surface,
-              fontFamily: T.fontBody,
-              fontSize: T.button.size,
-              fontWeight: 600,
-              letterSpacing: T.button.ls,
-              textDecoration: 'none',
-              boxShadow: T.shadowCard,
-              transition: T.tx,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = T.accentLight
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = T.accent
-            }}
-          >
-            Ask Now
-          </Link>
-        </div>
       </div>
     </header>
   )
