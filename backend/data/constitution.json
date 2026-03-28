@@ -1,0 +1,93 @@
+[
+  {
+    "article_number": "Article 12",
+    "title": "Fundamental Human Rights and Freedoms — General",
+    "chapter": "Chapter 5",
+    "tags": ["fundamental rights", "freedoms", "general"],
+    "text": "The fundamental human rights and freedoms enshrined in this Chapter shall be respected and upheld by the Executive, Legislature and Judiciary and all other organs of government and its agencies and, where applicable to them, by all natural and legal persons in Ghana, and shall be enforceable by the Courts as provided for in this Constitution."
+  },
+  {
+    "article_number": "Article 13",
+    "title": "Protection of Right to Life",
+    "chapter": "Chapter 5",
+    "tags": ["right to life", "death penalty"],
+    "text": "No person shall be deprived of his life intentionally except in the exercise of the execution of a sentence of a court in respect of a criminal offence under the laws of Ghana of which he has been convicted. A member of the Armed Forces of Ghana or a member of the Police Service or any other security service established by law may deprive a person of his life in the performance of his duties where it is reasonably justifiable in the circumstances."
+  },
+  {
+    "article_number": "Article 14",
+    "title": "Protection of Personal Liberty",
+    "chapter": "Chapter 5",
+    "tags": ["arrest", "detention", "liberty", "lawyer", "court", "48 hours"],
+    "text": "Every person shall be entitled to his personal liberty and no person shall be deprived of his personal liberty except in the following cases and in accordance with procedure permitted by law. A person who is arrested, restricted or detained shall be informed immediately, in a language that he understands, of the reasons for his arrest, restriction or detention and of his right to a lawyer of his choice. A person who is arrested or detained upon reasonable suspicion of his having committed or being about to commit a criminal offence under the laws of Ghana, and who is not released, shall be brought before a court within forty-eight hours after the arrest or detention."
+  },
+  {
+    "article_number": "Article 15",
+    "title": "Respect for Human Dignity",
+    "chapter": "Chapter 5",
+    "tags": ["dignity", "torture", "cruel treatment", "inhumane", "degrading"],
+    "text": "The dignity of all persons shall be inviolable. No person shall, whether or not he is arrested, restricted or retained, be subjected to torture or other cruel, inhuman or degrading treatment or punishment. No person shall be subjected to any other condition that detracts or is likely to detract from his dignity and worth as a human being."
+  },
+  {
+    "article_number": "Article 16",
+    "title": "Protection from Slavery and Forced Labour",
+    "chapter": "Chapter 5",
+    "tags": ["slavery", "forced labour", "compulsory labour"],
+    "text": "No person shall be held in slavery or servitude. No person shall be required to perform forced labour. For the purposes of this article, 'forced labour' does not include labour required by a sentence or order of a court, labour required of members of a disciplined force as part of their duties, labour required by law in place of military service, or labour reasonably required as part of normal communal or civic obligations."
+  },
+  {
+    "article_number": "Article 17",
+    "title": "Equality and Freedom from Discrimination",
+    "chapter": "Chapter 5",
+    "tags": ["equality", "discrimination", "gender", "race", "religion"],
+    "text": "All persons shall be equal before the law. A person shall not be discriminated against on grounds of gender, race, colour, ethnic origin, religion, creed or social or economic status. For the purposes of this article, 'discriminate' means to give different treatment to different persons attributable only to their respective descriptions by race, place of origin, political opinions, colour, gender, occupation, religion or creed, whereby persons of one description are subjected to disabilities or restrictions to which persons of another description are not made subject, or are accorded privileges or advantages which are not accorded to persons of another description."
+  },
+  {
+    "article_number": "Article 18",
+    "title": "Right to Privacy",
+    "chapter": "Chapter 5",
+    "tags": ["privacy", "search", "seizure", "warrant", "home", "property"],
+    "text": "Every person has the right to own property either alone or in association with others. No person shall be subjected to interference with the privacy of his home, property, correspondence or communication except in accordance with law and as may be necessary in a free and democratic society for public safety or the economic well-being of the country, for the protection of health or morals, for the prevention of disorder or crime or for the protection of the rights or freedoms of others."
+  },
+  {
+    "article_number": "Article 19",
+    "title": "Fair Trial",
+    "chapter": "Chapter 5",
+    "tags": ["fair trial", "court", "innocent", "presumption", "lawyer", "appeal"],
+    "text": "A person charged with a criminal offence shall be given a fair hearing within a reasonable time by a court. A person charged with a criminal offence shall be presumed to be innocent until he is proved or has pleaded guilty. A person charged with a criminal offence has the right to be represented by a lawyer of his choice. A person convicted of a criminal offence has the right to appeal to a higher court."
+  },
+  {
+    "article_number": "Article 20",
+    "title": "Protection from Deprivation of Property",
+    "chapter": "Chapter 5",
+    "tags": ["property", "land", "compensation", "eviction", "acquisition", "landlord"],
+    "text": "No person shall be deprived of his property otherwise than in accordance with law. No property of any description, or interest in or right over any property, shall be compulsorily taken possession of or acquired by the State unless the taking of possession or acquisition is necessary in the interest of defence, public safety, public order, public morality, public health, town and country planning or the development or utilisation of property in such a manner as to promote the public benefit. Prompt payment of fair and adequate compensation shall be made before the compulsory acquisition."
+  },
+  {
+    "article_number": "Article 21",
+    "title": "General Fundamental Freedoms",
+    "chapter": "Chapter 5",
+    "tags": ["speech", "assembly", "movement", "association", "unions", "religion", "expression"],
+    "text": "All persons shall have the right to freedom of speech and expression, which shall include freedom of the press and other media. All persons shall have the right to peaceful assembly including the right to take part in processions and demonstrations. All persons shall have the right to freedom of association, which shall include freedom to form or join trade unions or other associations, national or international, for the protection of their interest. All citizens shall have the right to move freely in Ghana, to reside in any part of Ghana and to enter and leave Ghana."
+  },
+  {
+    "article_number": "Article 23",
+    "title": "Administrative Justice",
+    "chapter": "Chapter 5",
+    "tags": ["administrative justice", "fair decision", "employer", "dismissal", "due process"],
+    "text": "Administrative bodies and administrative officials shall act fairly and reasonably and comply with the requirements imposed on them by law and persons aggrieved by the exercise of such acts and decisions shall have the right to seek redress before a court or other tribunal."
+  },
+  {
+    "article_number": "Article 24",
+    "title": "Economic Rights",
+    "chapter": "Chapter 5",
+    "tags": ["work", "employment", "fair wages", "safe conditions", "trade unions", "labour"],
+    "text": "Every person has the right to work under satisfactory, safe and healthy conditions, and shall receive equal pay for equal work without distinction of any kind. Every worker shall be assured of rest, leisure and reasonable limitation of working hours and periods of holidays with pay, as well as remuneration for public holidays. Every worker has a right to form or join a trade union of his choice for the promotion and protection of his economic and social interests."
+  },
+  {
+    "article_number": "Article 33",
+    "title": "Enforcement of Fundamental Human Rights and Freedoms",
+    "chapter": "Chapter 5",
+    "tags": ["enforcement", "court", "rights", "remedies"],
+    "text": "Where a person alleges that a provision of this Constitution on the fundamental human rights and freedoms has been, or is being or is likely to be contravened in relation to him, then, without prejudice to any other action that is lawfully available, that person may apply to the High Court for redress. The High Court may make such orders and give such directions as it considers appropriate for the purposes of enforcing or securing the enforcement of any of the provisions on the fundamental human rights and freedoms."
+  }
+]
