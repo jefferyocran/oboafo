@@ -2,7 +2,7 @@
 RAG (Retrieval-Augmented Generation) pipeline.
 
 Steps:
-1. Embed the user query using OpenAI embeddings
+1. Embed the user query using sentence-transformers (local, no API key needed)
 2. Search FAISS index for top-k matching constitutional articles
 3. Send retrieved articles + query to LLM
 4. Parse and return structured AskResponse
@@ -11,7 +11,6 @@ Setup (run once before demo):
     python -m app.services.rag --build
 """
 
-import os
 import json
 import re
 from pathlib import Path
@@ -26,12 +25,23 @@ CONSTITUTION_PATH = DATA_DIR / "constitution.json"
 FAISS_INDEX_PATH = DATA_DIR / "faiss_index" / "index.faiss"
 FAISS_META_PATH = DATA_DIR / "faiss_index" / "metadata.json"
 
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
+EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 TOP_K = 5
 
 # Lazy-loaded globals
 _faiss_index = None
 _metadata: list[dict] = []
+_sentence_model = None
+
+
+def _get_model():
+    """Load sentence-transformers model once and reuse."""
+    global _sentence_model
+    if _sentence_model is None:
+        from sentence_transformers import SentenceTransformer  # type: ignore
+        print(f"Loading embedding model '{EMBEDDING_MODEL}'...")
+        _sentence_model = SentenceTransformer(EMBEDDING_MODEL)
+    return _sentence_model
 
 
 def _load_index():
@@ -52,12 +62,9 @@ def _load_index():
 
 
 async def _embed(text: str) -> list[float]:
-    """Generate embedding for a single text using OpenAI."""
-    from openai import AsyncOpenAI
-
-    client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    response = await client.embeddings.create(input=text, model=EMBEDDING_MODEL)
-    return response.data[0].embedding
+    """Generate embedding for a single text using sentence-transformers (local, no API key)."""
+    model = _get_model()
+    return model.encode(text).tolist()
 
 
 async def retrieve(query: str, k: int = TOP_K) -> list[dict]:
@@ -130,21 +137,18 @@ def build_index():
     """
     Build the FAISS index from constitution.json.
     Run this once before the demo: python -m app.services.rag --build
+    Uses sentence-transformers locally — no API key required.
     """
-    import asyncio
     import faiss  # type: ignore
-    from openai import OpenAI
 
     print("Loading constitution chunks...")
     with open(CONSTITUTION_PATH, "r", encoding="utf-8") as f:
         chunks: list[dict] = json.load(f)
 
-    print(f"Embedding {len(chunks)} chunks...")
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
+    print(f"Embedding {len(chunks)} chunks with '{EMBEDDING_MODEL}'...")
+    model = _get_model()
     texts = [f"{c.get('article_number', '')} {c.get('title', '')} {c.get('text', '')}" for c in chunks]
-    embeddings_response = client.embeddings.create(input=texts, model=EMBEDDING_MODEL)
-    embeddings = [e.embedding for e in embeddings_response.data]
+    embeddings = model.encode(texts, show_progress_bar=True)
 
     vectors = np.array(embeddings, dtype=np.float32)
     dimension = vectors.shape[1]
