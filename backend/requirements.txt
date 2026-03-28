@@ -1,12 +1,22 @@
+# Python 3.11+ (tested through 3.14). Use a venv: python -m venv venv
+#
+# Notes:
+# - faiss-cpu 1.8.x has no wheels for newer Python; 1.12+ resolves cleanly.
+# - pymupdf 1.24.x often builds from source on Windows; 1.26+ ships wheels (cp310-abi3).
+
 fastapi==0.111.0
 uvicorn[standard]==0.29.0
 httpx==0.27.0
 python-dotenv==1.0.1
-faiss-cpu==1.8.0
+
+faiss-cpu>=1.12.0,<2
 sentence-transformers==2.7.0
-anthropic==0.28.0
-pydantic==2.7.1
-numpy==1.26.4
-pymupdf==1.24.0
-requests==2.31.0
+rank-bm25>=0.2.2,<0.3
+
+anthropic>=0.45.0,<1
+# 2.7.x lacks pydantic-core wheels for Python 3.14; 2.12+ includes cp314 builds.
+pydantic>=2.12.0,<3
+
+pymupdf>=1.26.0,<2
+requests>=2.31.0,<3
 python-multipart==0.0.9

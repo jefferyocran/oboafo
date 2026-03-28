@@ -1,15 +1,28 @@
+from contextlib import asynccontextmanager
+
+import asyncio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
-from app.routes import ask, crisis, transcribe
+from app.routes import ask, constitution_pdf, crisis, rag_stats, transcribe, translate_reply, translate_text, tts
 
 load_dotenv()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    from app.services import rag
+
+    await asyncio.to_thread(rag.warmup)
+    yield
+
 
 app = FastAPI(
     title="Ghana Constitutional Rights API",
     description="Legal guidance API powered by RAG over the 1992 Constitution of Ghana",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -25,8 +38,13 @@ app.add_middleware(
 )
 
 app.include_router(ask.router, prefix="/api")
+app.include_router(rag_stats.router, prefix="/api")
+app.include_router(constitution_pdf.router, prefix="/api")
 app.include_router(crisis.router, prefix="/api")
 app.include_router(transcribe.router, prefix="/api")
+app.include_router(tts.router, prefix="/api")
+app.include_router(translate_reply.router, prefix="/api")
+app.include_router(translate_text.router, prefix="/api")
 
 
 @app.get("/health")

@@ -7,8 +7,9 @@ structured JSON ready for FAISS embedding.
 Usage:
     cd backend
     python scripts/ingest_pdf.py
+    # Uses data/1992-constitution-of-ghana.pdf if present; otherwise downloads from audit.gov.gh and saves it there.
 
-    # Or use a local file:
+    # Or use another file:
     python scripts/ingest_pdf.py --file path/to/constitution.pdf
 
 Requirements:
@@ -22,7 +23,9 @@ import argparse
 from pathlib import Path
 
 PDF_URL = "https://audit.gov.gh/files/publications/The_1992_Constitution_of_the_Republic_of_Ghana635603143.pdf"
-OUTPUT_PATH = Path(__file__).parent.parent / "data" / "constitution.json"
+DATA_DIR = Path(__file__).parent.parent / "data"
+LOCAL_PDF_PATH = DATA_DIR / "1992-constitution-of-ghana.pdf"
+OUTPUT_PATH = DATA_DIR / "constitution.json"
 
 
 def download_pdf(url: str) -> bytes:
@@ -43,22 +46,116 @@ def extract_text(pdf_bytes: bytes) -> str:
     return "\n".join(pages)
 
 
+def _main_constitution_body(full_text: str) -> str:
+    """
+    The official Ghana PDF (audit.gov.gh) uses numbered headings like \"14.\\n(1) ...\",
+    not \"Article 14\". Cross-references such as \"article 71 of this Constitution\" must not
+    be treated as article boundaries.
+    """
+    start_m = re.search(r"1\.\s*\n\s*\(1\)\s*The Sovereignty", full_text)
+    if not start_m:
+        raise ValueError(
+            "Could not find start of constitution body (Article 1 / sovereignty clause). "
+            "PDF may be wrong or image-only."
+        )
+    start = start_m.start()
+    rest = full_text[start:]
+    end_m = re.search(
+        r"\n\s*FIRST\s+SCHEDULE\s*\n\s*TRANSITIONAL\s+PROVISIONS",
+        rest,
+        re.IGNORECASE,
+    )
+    if not end_m:
+        return rest
+    return rest[: end_m.start()]
+
+
+def _infer_title(block: str, number_int: int) -> str:
+    """Short label from first substantive line after the 'N.' line."""
+    lines = [ln.strip() for ln in block.split("\n") if ln.strip()]
+    for ln in lines[:6]:
+        if re.match(r"^\d{1,3}\.\s*$", ln):
+            continue
+        # Drop bare clause markers
+        if re.match(r"^\(\d+\)\s*$", ln):
+            continue
+        t = re.sub(r"^\(\d+\)\s*", "", ln)
+        t = re.sub(r"\s+", " ", t).strip()
+        if len(t) < 15:
+            continue
+        return (t[:180] + "…") if len(t) > 180 else t
+    return f"Article {number_int}"
+
+
 def parse_articles(full_text: str) -> list[dict]:
     """
     Split the constitution text into article-level chunks.
 
     Each chunk has:
-        article_number  — e.g. "Article 14"
-        title           — e.g. "Protection of Personal Liberty"
-        chapter         — e.g. "Chapter 5"
+        article_number  — e.g. \"Article 14\"
+        title           — first line / clause snippet as label
+        chapter         — e.g. \"Chapter 5\"
         tags            — list of keyword strings
-        text            — full article text
+        text            — full article text (including the \"N.\" heading line)
     """
+    chunks: list[dict] = []
+
+    body = _main_constitution_body(full_text)
+    # Line contains only an article number and a dot (e.g. \"14.\" or \"14. \")
+    marker = re.compile(r"(?m)^\s*(\d{1,3})\.\s*$")
+    matches = list(marker.finditer(body))
+    if len(matches) < 10:
+        print(
+            "WARNING: Few article markers found; PDF layout may differ. "
+            "Falling back to legacy 'Article N' scan."
+        )
+        return _parse_articles_legacy(full_text)
+
+    for i, match in enumerate(matches):
+        number_int = int(match.group(1))
+        start = match.start()
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(body)
+        block = body[start:end].strip()
+        block = re.sub(r"\n{3,}", "\n\n", block)
+        block = re.sub(r" {2,}", " ", block)
+
+        if len(block) < 50:
+            continue
+
+        article_number = f"Article {number_int}"
+        title = _infer_title(block, number_int)
+        chapter = _guess_chapter(number_int)
+        tags = _generate_tags(number_int, title, block)
+
+        chunks.append(
+            {
+                "article_number": article_number,
+                "title": title,
+                "chapter": chapter,
+                "tags": tags,
+                "text": block,
+            }
+        )
+
+    # Same article number can appear twice in this PDF (duplicate headings); keep the longer text.
+    by_num: dict[int, dict] = {}
+    for ch in chunks:
+        n = int(str(ch["article_number"]).replace("Article ", "").strip())
+        prev = by_num.get(n)
+        if prev is None or len(ch["text"]) > len(prev["text"]):
+            by_num[n] = ch
+    chunks = sorted(by_num.values(), key=lambda c: int(c["article_number"].split()[-1]))
+
+    print(f"Parsed {len(chunks)} articles (numbered-heading PDF layout)")
+    return chunks
+
+
+def _parse_articles_legacy(full_text: str) -> list[dict]:
+    """Older PDFs that use explicit 'Article N — Title' lines at column start."""
     chunks = []
 
-    # Match "Article 1" through "Article 299" with optional leading whitespace
     article_pattern = re.compile(
-        r'(?:^|\n)\s*(Article\s+(\d+))\s*[\.\-–]?\s*([^\n]*)\n',
+        r"(?:^|\n)\s*(Article\s+(\d+))\s*[\.\-–]?\s*([^\n]*)\n",
         re.MULTILINE | re.IGNORECASE,
     )
 
@@ -66,37 +163,33 @@ def parse_articles(full_text: str) -> list[dict]:
 
     for i, match in enumerate(matches):
         article_number = match.group(1).strip()
-        number_int     = int(match.group(2))
-        title          = match.group(3).strip()
+        number_int = int(match.group(2))
+        title = match.group(3).strip()
 
-        # Body text = everything up to the next article (or EOF)
         start = match.end()
-        end   = matches[i + 1].start() if i + 1 < len(matches) else len(full_text)
-        body  = full_text[start:end].strip()
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(full_text)
+        body = full_text[start:end].strip()
 
-        # Clean up excessive whitespace
-        body = re.sub(r'\n{3,}', '\n\n', body)
-        body = re.sub(r' {2,}', ' ', body)
+        body = re.sub(r"\n{3,}", "\n\n", body)
+        body = re.sub(r" {2,}", " ", body)
 
-        # Skip very short entries (page headers, etc.)
         if len(body) < 50:
             continue
 
-        # Determine chapter
         chapter = _guess_chapter(number_int)
-
-        # Generate tags from article number and title
         tags = _generate_tags(number_int, title, body)
 
-        chunks.append({
-            "article_number": article_number,
-            "title":          title,
-            "chapter":        chapter,
-            "tags":           tags,
-            "text":           body,
-        })
+        chunks.append(
+            {
+                "article_number": article_number,
+                "title": title,
+                "chapter": chapter,
+                "tags": tags,
+                "text": body,
+            }
+        )
 
-    print(f"Parsed {len(chunks)} articles")
+    print(f"Parsed {len(chunks)} articles (legacy Article-word layout)")
     return chunks
 
 
@@ -157,7 +250,7 @@ def save(chunks: list[dict]) -> None:
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
         json.dump(chunks, f, ensure_ascii=False, indent=2)
-    print(f"Saved {len(chunks)} chunks → {OUTPUT_PATH}")
+    print(f"Saved {len(chunks)} chunks -> {OUTPUT_PATH}")
     print("\nNext step: python -m app.services.rag --build")
 
 
@@ -170,8 +263,14 @@ def main():
     if args.file:
         pdf_bytes = Path(args.file).read_bytes()
         print(f"Using local file: {args.file}")
+    elif LOCAL_PDF_PATH.is_file():
+        pdf_bytes = LOCAL_PDF_PATH.read_bytes()
+        print(f"Using bundled PDF: {LOCAL_PDF_PATH}")
     else:
         pdf_bytes = download_pdf(args.url)
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        LOCAL_PDF_PATH.write_bytes(pdf_bytes)
+        print(f"Saved PDF for offline use -> {LOCAL_PDF_PATH}")
 
     text   = extract_text(pdf_bytes)
     chunks = parse_articles(text)
