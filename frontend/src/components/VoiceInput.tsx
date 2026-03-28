@@ -24,11 +24,11 @@ interface VoiceInputProps {
 
 // Web Speech API language map
 const SPEECH_LANG: Record<Language, string> = {
-  en:  'en-GH',
-  tw:  'ak-GH',
-  ee:  'ee-GH',
-  ga:  'gaa-GH',
-  dag: 'dag-GH',
+  en: 'en-GH',
+  tw: 'ak-GH',
+  ee: 'ee-GH',
+  ga: 'gaa-GH',
+  dag: 'en-GH',
 }
 
 type RecordState = 'idle' | 'recording' | 'confirming' | 'denied'
@@ -127,7 +127,7 @@ export function VoiceInput({ language, onTranscript, disabled }: VoiceInputProps
           "{draft}"
         </p>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button onClick={confirm} style={confirmBtn(T.gold, T.bg)}>
+          <button onClick={confirm} style={confirmBtn(T.accent, T.surface)}>
             Send
           </button>
           <button onClick={discard} style={confirmBtn(T.borderHi, T.text2)}>
@@ -146,12 +146,12 @@ export function VoiceInput({ language, onTranscript, disabled }: VoiceInputProps
       disabled={disabled}
       title={isRecording ? 'Stop recording' : 'Speak your question'}
       style={{
-        width: '40px',
-        height: '40px',
+        width: 48,
+        height: 48,
         borderRadius: '50%',
-        border: `1.5px solid ${isRecording ? T.red : T.borderHi}`,
-        background: isRecording ? T.redDim : 'transparent',
-        color: isRecording ? T.red : T.text3,
+        border: `2px solid ${isRecording ? T.accent : T.borderHi}`,
+        background: isRecording ? T.goldDim : 'transparent',
+        color: isRecording ? T.primary : T.textMuted,
         cursor: disabled ? 'not-allowed' : 'pointer',
         display: 'flex',
         alignItems: 'center',
@@ -160,9 +160,10 @@ export function VoiceInput({ language, onTranscript, disabled }: VoiceInputProps
         transition: T.tx,
         opacity: disabled ? 0.4 : 1,
         position: 'relative',
+        animation: isRecording ? 'pulseRing 1.6s ease-out infinite' : 'none',
       }}
     >
-      {isRecording ? <Waveform active barCount={5} color={T.red} /> : <span style={{ fontSize: '1.1rem' }}>🎙️</span>}
+      {isRecording ? <Waveform active barCount={5} color={T.accent} /> : <span style={{ fontSize: '1.15rem' }}>🎙️</span>}
     </button>
   )
 }

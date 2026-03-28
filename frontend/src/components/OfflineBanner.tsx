@@ -1,3 +1,5 @@
+import { T } from '../theme'
+
 interface OfflineBannerProps {
   isOnline: boolean
 }
@@ -6,15 +8,18 @@ export function OfflineBanner({ isOnline }: OfflineBannerProps) {
   if (isOnline) return null
 
   return (
-    <div style={{
-      background: '#b45309',
-      color: '#fef3c7',
-      padding: '8px 16px',
-      textAlign: 'center',
-      fontSize: '0.85rem',
-      fontWeight: 500,
-    }}>
-      You're offline — Crisis Mode works anytime. Chat requires internet.
+    <div
+      style={{
+        background: T.warning,
+        color: T.surface,
+        padding: `${T.sp(1)} 16px`,
+        textAlign: 'center',
+        fontSize: T.small.size,
+        fontWeight: 600,
+        fontFamily: T.fontBody,
+      }}
+    >
+      You&apos;re offline — Crisis still works. Chat needs internet.
     </div>
   )
 }

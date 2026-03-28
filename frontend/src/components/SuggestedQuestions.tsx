@@ -3,45 +3,68 @@ import { T } from '../theme'
 interface SuggestedQuestionsProps {
   questions: string[]
   onSelect: (q: string) => void
+  layout?: 'stack' | 'row' | 'wrap'
 }
 
-export function SuggestedQuestions({ questions, onSelect }: SuggestedQuestionsProps) {
+const chipBase = {
+  padding: '10px 14px',
+  background: T.surface,
+  border: `1px solid ${T.border}`,
+  borderRadius: T.rFull,
+  color: T.textSecondary,
+  fontFamily: T.fontBody,
+  fontSize: T.small.size,
+  cursor: 'pointer' as const,
+  textAlign: 'left' as const,
+  lineHeight: 1.4,
+  transition: T.tx,
+  minHeight: 48,
+}
+
+export function SuggestedQuestions({
+  questions,
+  onSelect,
+  layout = 'stack',
+}: SuggestedQuestionsProps) {
+  const flexDir = layout === 'stack' ? 'column' : 'row'
+  const flexWrap = layout === 'wrap' ? 'wrap' : layout === 'row' ? 'nowrap' : 'nowrap'
+
   return (
-    <div>
-      <p style={{ margin: '0 0 8px', color: T.text3, fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-        Suggested questions
-      </p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-        {questions.map((q) => (
-          <button
-            key={q}
-            onClick={() => onSelect(q)}
-            style={{
-              padding: '9px 12px',
-              background: T.surface2,
-              border: `1px solid ${T.border}`,
-              borderRadius: T.r,
-              color: T.text2,
-              fontSize: '0.85rem',
-              cursor: 'pointer',
-              textAlign: 'left',
-              lineHeight: 1.4,
-              transition: T.tx,
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.borderColor = T.gold
-              e.currentTarget.style.color = T.text
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.borderColor = T.border
-              e.currentTarget.style.color = T.text2
-            }}
-          >
-            <span style={{ color: T.gold, marginRight: '6px' }}>→</span>
-            {q}
-          </button>
-        ))}
-      </div>
+    <div
+      role="list"
+      style={{
+        display: 'flex',
+        flexDirection: flexDir,
+        flexWrap,
+        gap: 8,
+        alignItems: layout === 'stack' ? 'stretch' : 'flex-start',
+      }}
+    >
+      {questions.map((q) => (
+        <button
+          key={q}
+          type="button"
+          role="listitem"
+          onClick={() => onSelect(q)}
+          style={{
+            ...chipBase,
+            ...(layout === 'row' ? { flex: '0 0 auto', whiteSpace: 'nowrap' as const } : {}),
+            ...(layout === 'wrap' ? { flex: '1 1 200px' } : {}),
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = T.accent
+            e.currentTarget.style.transform = 'scale(1.02)'
+            e.currentTarget.style.color = T.text
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = T.border
+            e.currentTarget.style.transform = 'none'
+            e.currentTarget.style.color = T.textSecondary
+          }}
+        >
+          {q}
+        </button>
+      ))}
     </div>
   )
 }

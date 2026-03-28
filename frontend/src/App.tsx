@@ -1,115 +1,78 @@
 import { useState } from 'react'
-import type { AppPage } from './types'
-import { LanguageProvider, useLanguage } from './context/LanguageContext'
+import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom'
+import { LanguageProvider } from './context/LanguageContext'
 import { AudioProvider } from './context/AudioContext'
-import { LanguageSelector } from './components/LanguageSelector'
+import { MainNav } from './components/MainNav'
+import { SiteFooter } from './components/SiteFooter'
 import { OfflineBanner } from './components/OfflineBanner'
 import { BottomNav } from './components/BottomNav'
-import { Chat } from './components/Chat'
-import { HomePage } from './pages/HomePage'
-import { BrowsePage } from './pages/BrowsePage'
+import { LanguageSheet } from './components/LanguageSheet'
+import { LandingPage } from './pages/LandingPage'
+import { LearnPage } from './pages/LearnPage'
+import { TopicRoute } from './pages/TopicRoute'
+import { AskPage } from './pages/AskPage'
 import { CrisisPage } from './pages/CrisisPage'
-import { TOPICS } from './data/topics'
 import { useOnlineStatus } from './hooks/useOnlineStatus'
+import { useMediaQuery } from './hooks/useMediaQuery'
 import { T } from './theme'
 
 export default function App() {
   return (
-    <LanguageProvider>
-      <AudioProvider>
-        <AppShell />
-      </AudioProvider>
-    </LanguageProvider>
+    <BrowserRouter>
+      <LanguageProvider>
+        <AudioProvider>
+          <AppRoutes />
+        </AudioProvider>
+      </LanguageProvider>
+    </BrowserRouter>
   )
 }
 
-function AppShell() {
-  const [page, setPage] = useState<AppPage>('home')
-  const [browseTopicId, setBrowseTopicId] = useState<string | undefined>()
-  const [chatPrefill, setChatPrefill] = useState<string | undefined>()
-  const { language, setLanguage } = useLanguage()
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route element={<RootLayout />}>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/learn" element={<LearnPage />} />
+        <Route path="/topic/:topicId" element={<TopicRoute />} />
+        <Route path="/ask" element={<AskPage />} />
+        <Route path="/crisis" element={<CrisisPage />} />
+      </Route>
+    </Routes>
+  )
+}
+
+function RootLayout() {
   const isOnline = useOnlineStatus()
-
-  function navigateTo(p: AppPage) {
-    setPage(p)
-  }
-
-  function handleAskAbout(question: string) {
-    setChatPrefill(question)
-    setPage('chat')
-  }
-
-  function handleBrowseTopic(topicId: string) {
-    setBrowseTopicId(topicId)
-    setPage('browse')
-  }
+  const isMobile = useMediaQuery('(max-width: 767px)')
+  const [langOpen, setLangOpen] = useState(false)
 
   return (
-    <div style={{
-      height: '100dvh',
-      background: T.bg,
-      color: T.text,
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      display: 'flex',
-      flexDirection: 'column',
-      maxWidth: '480px',
-      margin: '0 auto',
-      overflow: 'hidden',
-      boxShadow: '0 0 60px rgba(0,0,0,0.5)',
-    }}>
-      <OfflineBanner isOnline={isOnline} />
-
-      {/* Top header */}
-      <header style={{
-        padding: '10px 16px',
-        borderBottom: `1px solid ${T.border}`,
-        background: T.surface,
+    <div
+      style={{
+        minHeight: '100dvh',
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '12px',
-        flexShrink: 0,
-      }}>
-        <button
-          onClick={() => setPage('home')}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: '8px' }}
-        >
-          <span style={{ fontSize: '1.3rem' }}>🇬🇭</span>
-          <div style={{ textAlign: 'left' }}>
-            <div style={{ color: T.gold, fontWeight: 800, fontSize: '0.88rem' }}>Oboafo</div>
-            <div style={{ color: T.text3, fontSize: '0.64rem' }}>Ghana Constitutional Rights</div>
-          </div>
-        </button>
-
-        {/* 🌐 Language switcher */}
-        <LanguageSelector language={language} onChange={setLanguage} />
-      </header>
-
-      {/* Page content */}
-      <main style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        {page === 'home' && (
-          <HomePage isOnline={isOnline} onNavigate={navigateTo} />
-        )}
-        {(page === 'browse' || page === 'topic') && (
-          <BrowsePage
-            topics={TOPICS}
-            initialTopicId={browseTopicId}
-            onAskAbout={handleAskAbout}
-          />
-        )}
-        {page === 'chat' && (
-          <Chat
-            language={language}
-            isOnline={isOnline}
-            prefillQuestion={chatPrefill}
-            onPrefillConsumed={() => setChatPrefill(undefined)}
-          />
-        )}
-        {page === 'crisis' && <CrisisPage />}
+        flexDirection: 'column',
+        background: T.bg,
+        color: T.text,
+      }}
+    >
+      <MainNav />
+      <OfflineBanner isOnline={isOnline} />
+      <main
+        style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: 0,
+          paddingBottom: isMobile ? 64 : 0,
+        }}
+      >
+        <Outlet />
       </main>
-
-      {/* Bottom navigation */}
-      <BottomNav page={page} onNavigate={navigateTo} />
+      <SiteFooter />
+      {isMobile && <BottomNav onOpenLanguage={() => setLangOpen(true)} />}
+      {langOpen && <LanguageSheet onClose={() => setLangOpen(false)} />}
     </div>
   )
 }

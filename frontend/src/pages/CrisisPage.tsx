@@ -1,75 +1,127 @@
+import { Link } from 'react-router-dom'
 import { CrisisButtons } from '../components/CrisisButtons'
 import { useLanguage } from '../context/LanguageContext'
+import { LanguageSelector } from '../components/LanguageSelector'
 import { T } from '../theme'
 
 export function CrisisPage() {
-  const { language } = useLanguage()
+  const { language, setLanguage } = useLanguage()
 
   return (
-    <div style={{ overflowY: 'auto', height: '100%' }}>
-      <div style={{
-        padding: '16px',
-        background: `linear-gradient(160deg, #1a0505 0%, #0a0e1a 100%)`,
-        borderBottom: `1px solid ${T.redBorder}`,
-      }}>
-        <h2 style={{ margin: '0 0 4px', fontSize: '1.15rem', fontWeight: 800, color: T.red }}>
-          🆘 Crisis Mode
-        </h2>
-        <p style={{ margin: 0, fontSize: '0.82rem', color: T.text2, lineHeight: 1.5 }}>
-          Instant rights guidance — works offline, no internet needed.
-        </p>
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '6px',
-          marginTop: '10px',
-          padding: '5px 10px',
-          background: T.greenDim,
-          border: `1px solid ${T.green}`,
-          borderRadius: T.rFull,
-          fontSize: '0.72rem',
-          color: T.green,
-          fontWeight: 700,
-        }}>
-          ✓ No internet required
+    <div style={{ background: T.bg, minHeight: '100%' }}>
+      <div style={{ maxWidth: 720, margin: '0 auto', padding: `${T.sp(4)} 20px ${T.sp(8)}` }}>
+        <Link
+          to="/"
+          style={{
+            fontFamily: T.fontBody,
+            fontSize: T.small.size,
+            color: T.primaryLight,
+            marginBottom: T.sp(2),
+            display: 'inline-block',
+          }}
+        >
+          ← Home
+        </Link>
+        <div
+          style={{
+            padding: T.sp(3),
+            background: T.redDim,
+            border: `1px solid ${T.red}`,
+            borderRadius: T.rMd,
+            marginBottom: T.sp(3),
+          }}
+        >
+          <h1
+            style={{
+              margin: `0 0 ${T.sp(1)}`,
+              fontSize: T.h2.size,
+              fontFamily: T.fontDisplay,
+              fontWeight: 700,
+              color: T.red,
+            }}
+          >
+            Crisis help
+          </h1>
+          <p style={{ margin: 0, fontFamily: T.fontBody, fontSize: T.body.size, color: T.textSecondary, lineHeight: T.body.lh }}>
+            Quick rights reminders — works offline. Not a substitute for a lawyer or emergency services.
+          </p>
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              marginTop: T.sp(2),
+              padding: '6px 12px',
+              background: T.surface,
+              borderRadius: T.rFull,
+              fontFamily: T.fontBody,
+              fontSize: T.caption.size,
+              fontWeight: 600,
+              color: T.success,
+              border: `1px solid ${T.success}`,
+            }}
+          >
+            ✓ No internet required
+          </div>
         </div>
-      </div>
 
-      <div style={{ padding: '16px' }}>
+        <div style={{ marginBottom: T.sp(2) }}>
+          <p
+            style={{
+              fontFamily: T.fontBody,
+              fontSize: T.caption.size,
+              fontWeight: 600,
+              color: T.textMuted,
+              margin: `0 0 ${T.sp(1)}`,
+            }}
+          >
+            Language
+          </p>
+          <LanguageSelector language={language} onChange={setLanguage} variant="pills" />
+        </div>
+
         <CrisisButtons language={language} />
 
-        <div style={{
-          marginTop: '20px',
-          padding: '12px 14px',
-          background: T.surface,
-          border: `1px solid ${T.border}`,
-          borderRadius: T.r,
-        }}>
-          <p style={{ margin: '0 0 6px', color: T.text2, fontSize: '0.82rem', fontWeight: 600 }}>
-            Emergency Contacts
+        <div
+          style={{
+            marginTop: T.sp(4),
+            padding: T.sp(3),
+            background: T.surface,
+            border: `1px solid ${T.border}`,
+            borderRadius: T.rMd,
+            boxShadow: T.shadowCard,
+          }}
+        >
+          <p style={{ margin: '0 0 8px', color: T.text, fontSize: T.small.size, fontWeight: 600, fontFamily: T.fontBody }}>
+            Emergency contacts
           </p>
           {[
-            { name: 'Ghana Police Service',          phone: '191' },
-            { name: 'Ambulance Service',              phone: '193' },
-            { name: 'Legal Aid Commission (toll-free)',phone: '0800-100-060' },
-            { name: 'CHRAJ (Human Rights)',            phone: '0302-662-504' },
-          ].map(c => (
+            { name: 'Ghana Police Service', phone: '191' },
+            { name: 'Ambulance Service', phone: '193' },
+            { name: 'Legal Aid Commission (toll-free)', phone: '0800-100-060' },
+            { name: 'CHRAJ (Human Rights)', phone: '0302-662-504' },
+          ].map((c) => (
             <a
               key={c.phone}
-              href={`tel:${c.phone}`}
+              href={`tel:${c.phone.replace(/\D/g, '')}`}
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                padding: '9px 0',
-                borderBottom: `1px solid ${T.border}`,
+                padding: '12px 14px',
+                marginBottom: 8,
+                background: T.bg,
+                border: `1px solid ${T.border}`,
+                borderRadius: T.rSm,
                 textDecoration: 'none',
                 color: T.text,
-                fontSize: '0.85rem',
+                fontFamily: T.fontBody,
+                fontSize: T.small.size,
+                minHeight: 48,
               }}
             >
-              <span style={{ color: T.text2 }}>{c.name}</span>
-              <span style={{ color: T.blue, fontWeight: 700 }}>{c.phone}</span>
+              <span>{c.name}</span>
+              <span style={{ color: T.primaryLight, fontWeight: 700 }}>{c.phone}</span>
             </a>
           ))}
         </div>

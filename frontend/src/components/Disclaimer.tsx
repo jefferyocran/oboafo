@@ -7,31 +7,60 @@ interface DisclaimerProps {
 export function Disclaimer({ compact }: DisclaimerProps) {
   if (compact) {
     return (
-      <p style={{ color: T.text4, fontSize: '0.7rem', textAlign: 'center', lineHeight: 1.5, margin: 0 }}>
-        Oboafo is an educator, not a lawyer.
-        For urgent matters call Legal Aid Commission: <strong style={{ color: T.text3 }}>0800-100-060</strong> (toll-free)
+      <p
+        style={{
+          color: T.textSecondary,
+          fontSize: 14,
+          textAlign: 'center',
+          lineHeight: T.small.lh,
+          margin: 0,
+          fontFamily: T.fontBody,
+        }}
+      >
+        Oboafo is an educator, not a lawyer. Legal Aid (toll-free):{' '}
+        <strong style={{ color: T.text }}>0800-100-060</strong>
       </p>
     )
   }
 
   return (
-    <div style={{
-      background: T.surface,
-      border: `1px solid ${T.border}`,
-      borderLeft: `3px solid ${T.gold}`,
-      borderRadius: T.r,
-      padding: '12px 14px',
-    }}>
-      <p style={{ margin: '0 0 4px', color: T.goldText, fontSize: '0.78rem', fontWeight: 700 }}>
-        Important Disclaimer
+    <div
+      style={{
+        background: T.disclaimerBg,
+        border: `1px solid ${T.border}`,
+        borderLeft: `4px solid ${T.accent}`,
+        borderRadius: T.rMd,
+        padding: T.sp(2),
+      }}
+    >
+      <p
+        style={{
+          margin: '0 0 6px',
+          color: T.primary,
+          fontSize: T.small.size,
+          fontWeight: 600,
+          fontFamily: T.fontBody,
+        }}
+      >
+        Important disclaimer
       </p>
-      <p style={{ margin: 0, color: T.text2, fontSize: '0.82rem', lineHeight: 1.6 }}>
-        Oboafo provides general legal education based on the 1992 Constitution of Ghana.
-        It is <strong>not a lawyer</strong> and this is <strong>not legal advice</strong>.
-        For specific legal matters, consult a qualified lawyer.
+      <p
+        style={{
+          margin: 0,
+          color: T.textSecondary,
+          fontSize: T.body.size,
+          lineHeight: T.body.lh,
+          fontFamily: T.fontBody,
+        }}
+      >
+        Oboafo provides general legal education based on the 1992 Constitution of Ghana. It is{' '}
+        <strong style={{ color: T.text }}>not a lawyer</strong> and this is{' '}
+        <strong style={{ color: T.text }}>not legal advice</strong>. For specific legal matters, consult a qualified
+        lawyer.
       </p>
-      <p style={{ margin: '8px 0 0', color: T.text2, fontSize: '0.82rem' }}>
-        📞 Legal Aid Commission (toll-free): <strong style={{ color: T.gold }}>0800-100-060</strong>
+      <p style={{ margin: '10px 0 0', color: T.textSecondary, fontSize: T.body.size, fontFamily: T.fontBody }}>
+        Legal Aid Commission (toll-free):{' '}
+        <strong style={{ color: T.primary }}>0800-100-060</strong>
       </p>
     </div>
   )

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { CrisisScenario, CrisisResponse, Language } from '../types'
 import { CRISIS_SCENARIOS, getCrisisResponse } from '../data/crisisResponses'
+import { T } from '../theme'
 
 interface CrisisButtonsProps {
   language: Language
@@ -10,7 +11,6 @@ export function CrisisButtons({ language }: CrisisButtonsProps) {
   const [activeResponse, setActiveResponse] = useState<CrisisResponse | null>(null)
 
   function handleScenario(scenario: CrisisScenario) {
-    // Always use local cached data — works offline
     const response = getCrisisResponse(scenario, language)
     setActiveResponse(response)
   }
@@ -25,44 +25,59 @@ export function CrisisButtons({ language }: CrisisButtonsProps) {
 
   return (
     <div>
-      <h2 style={{ color: '#f87171', fontSize: '1rem', fontWeight: 700, marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-        Crisis Mode — Instant Help
+      <h2
+        style={{
+          color: T.red,
+          fontSize: T.body.size,
+          fontWeight: 700,
+          marginBottom: 12,
+          textTransform: 'uppercase',
+          letterSpacing: '0.06em',
+          fontFamily: T.fontBody,
+        }}
+      >
+        Choose a situation
       </h2>
-      <div style={{ display: 'grid', gap: '10px' }}>
+      <div style={{ display: 'grid', gap: 10 }}>
         {CRISIS_SCENARIOS.map(({ id, emoji, labelEn }) => (
           <button
             key={id}
+            type="button"
             onClick={() => handleScenario(id)}
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '12px',
+              gap: 12,
+              minHeight: 48,
               padding: '14px 16px',
-              background: '#1a0a0a',
-              border: '1px solid #991b1b',
-              borderRadius: '10px',
-              color: '#fca5a5',
-              fontSize: '0.95rem',
+              background: T.surface,
+              border: `1px solid ${T.redBorder}`,
+              borderRadius: T.rMd,
+              color: T.red,
+              fontSize: T.body.size,
               fontWeight: 600,
               cursor: 'pointer',
               textAlign: 'left',
-              transition: 'all 0.15s',
+              transition: T.tx,
+              fontFamily: T.fontBody,
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#2a1010'
-              e.currentTarget.style.borderColor = '#ef4444'
+              e.currentTarget.style.background = T.redDim
+              e.currentTarget.style.borderColor = T.red
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = '#1a0a0a'
-              e.currentTarget.style.borderColor = '#991b1b'
+              e.currentTarget.style.background = T.surface
+              e.currentTarget.style.borderColor = T.redBorder
             }}
           >
-            <span style={{ fontSize: '1.4rem' }}>{emoji}</span>
+            <span style={{ fontSize: '1.4rem' }} aria-hidden>
+              {emoji}
+            </span>
             <span>{labelEn}</span>
           </button>
         ))}
       </div>
-      <p style={{ color: '#6b7280', fontSize: '0.75rem', marginTop: '10px' }}>
+      <p style={{ color: T.textMuted, fontSize: T.caption.size, marginTop: 10, fontFamily: T.fontBody }}>
         Works offline — no internet needed
       </p>
     </div>
@@ -73,58 +88,90 @@ function CrisisDetail({ response, onBack }: { response: CrisisResponse; onBack: 
   return (
     <div style={{ animation: 'fadeIn 0.2s ease' }}>
       <button
+        type="button"
         onClick={onBack}
         style={{
           background: 'transparent',
           border: 'none',
-          color: '#9ca3af',
+          color: T.primaryLight,
           cursor: 'pointer',
-          fontSize: '0.85rem',
+          fontSize: T.small.size,
           padding: '0 0 12px',
           display: 'flex',
           alignItems: 'center',
-          gap: '4px',
+          gap: 4,
+          fontFamily: T.fontBody,
+          minHeight: 48,
         }}
       >
         ← Back
       </button>
 
-      <h2 style={{ color: '#f87171', fontSize: '1.1rem', fontWeight: 700, marginBottom: '16px' }}>
+      <h2
+        style={{
+          color: T.red,
+          fontSize: T.h3.size,
+          fontFamily: T.fontDisplay,
+          fontWeight: 700,
+          marginBottom: 16,
+        }}
+      >
         {response.title}
       </h2>
 
-      <section style={{ marginBottom: '20px' }}>
-        <h3 style={{ color: '#d4a843', fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' }}>
-          Your Rights
+      <section style={{ marginBottom: 20 }}>
+        <h3
+          style={{
+            color: T.accent,
+            fontSize: T.caption.size,
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+            marginBottom: 10,
+            fontFamily: T.fontBody,
+          }}
+        >
+          Your rights
         </h3>
-        <div style={{ display: 'grid', gap: '8px' }}>
+        <div style={{ display: 'grid', gap: 8 }}>
           {response.rights.map((right, i) => (
             <div
               key={i}
               style={{
-                background: '#0f1a0f',
-                border: '1px solid #166534',
-                borderRadius: '8px',
-                padding: '10px 12px',
+                background: T.greenDim,
+                border: `1px solid ${T.success}`,
+                borderRadius: T.rSm,
+                padding: '12px 14px',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'flex-start',
-                gap: '10px',
+                gap: 10,
               }}
             >
-              <p style={{ margin: 0, color: '#86efac', fontSize: '0.9rem', lineHeight: 1.4 }}>
+              <p
+                style={{
+                  margin: 0,
+                  color: T.text,
+                  fontSize: T.body.size,
+                  lineHeight: T.body.lh,
+                  fontFamily: T.fontBody,
+                }}
+              >
                 {right.text}
               </p>
-              <span style={{
-                flexShrink: 0,
-                background: '#0d1117',
-                border: '1px solid #d4a843',
-                color: '#d4a843',
-                borderRadius: '4px',
-                padding: '2px 6px',
-                fontSize: '0.7rem',
-                fontWeight: 700,
-              }}>
+              <span
+                style={{
+                  flexShrink: 0,
+                  background: T.surface,
+                  border: `1px solid ${T.accent}`,
+                  color: T.primary,
+                  borderRadius: T.rSm,
+                  padding: '4px 8px',
+                  fontSize: T.caption.size,
+                  fontWeight: 700,
+                  fontFamily: T.fontBody,
+                }}
+              >
                 {right.article}
               </span>
             </div>
@@ -132,44 +179,75 @@ function CrisisDetail({ response, onBack }: { response: CrisisResponse; onBack: 
         </div>
       </section>
 
-      <section style={{ marginBottom: '20px' }}>
-        <h3 style={{ color: '#d4a843', fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' }}>
-          What To Do
+      <section style={{ marginBottom: 20 }}>
+        <h3
+          style={{
+            color: T.accent,
+            fontSize: T.caption.size,
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+            marginBottom: 10,
+            fontFamily: T.fontBody,
+          }}
+        >
+          What to do
         </h3>
-        <ol style={{ margin: 0, paddingLeft: '20px', display: 'grid', gap: '6px' }}>
+        <ol
+          style={{
+            margin: 0,
+            paddingLeft: 20,
+            display: 'grid',
+            gap: 6,
+            fontFamily: T.fontBody,
+            fontSize: T.body.size,
+            color: T.text,
+            lineHeight: T.body.lh,
+          }}
+        >
           {response.actions.map((action, i) => (
-            <li key={i} style={{ color: '#e5e7eb', fontSize: '0.9rem', lineHeight: 1.4 }}>
-              {action}
-            </li>
+            <li key={i}>{action}</li>
           ))}
         </ol>
       </section>
 
       {response.emergency_contacts.length > 0 && (
         <section>
-          <h3 style={{ color: '#d4a843', fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' }}>
-            Emergency Contacts
+          <h3
+            style={{
+              color: T.accent,
+              fontSize: T.caption.size,
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              marginBottom: 10,
+              fontFamily: T.fontBody,
+            }}
+          >
+            Emergency contacts
           </h3>
-          <div style={{ display: 'grid', gap: '6px' }}>
+          <div style={{ display: 'grid', gap: 6 }}>
             {response.emergency_contacts.map((contact, i) => (
               <a
                 key={i}
-                href={`tel:${contact.phone}`}
+                href={`tel:${contact.phone.replace(/[^+\d]/g, '')}`}
                 style={{
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  padding: '10px 12px',
-                  background: '#0d1117',
-                  border: '1px solid #374151',
-                  borderRadius: '8px',
+                  minHeight: 48,
+                  padding: '12px 14px',
+                  background: T.surface,
+                  border: `1px solid ${T.border}`,
+                  borderRadius: T.rSm,
                   textDecoration: 'none',
-                  color: '#e5e7eb',
-                  fontSize: '0.85rem',
+                  color: T.text,
+                  fontSize: T.small.size,
+                  fontFamily: T.fontBody,
                 }}
               >
                 <span>{contact.name}</span>
-                <span style={{ color: '#60a5fa', fontWeight: 600 }}>{contact.phone}</span>
+                <span style={{ color: T.primaryLight, fontWeight: 600 }}>{contact.phone}</span>
               </a>
             ))}
           </div>

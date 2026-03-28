@@ -12,11 +12,14 @@ interface AudioButtonProps {
   text: string
   label?: string
   size?: 'sm' | 'md'
+  /** Language of `text` for TTS (e.g. assistant display language after “Show in”). */
+  speakLanguage?: string
 }
 
-export function AudioButton({ id, text, label, size = 'md' }: AudioButtonProps) {
+export function AudioButton({ id, text, label, size = 'md', speakLanguage }: AudioButtonProps) {
   const { speak, activeId, audioState } = useAudio()
   const { language } = useLanguage()
+  const lang = speakLanguage ?? language
 
   const isThisPlaying = activeId === id && audioState === 'playing'
   const isThisLoading = activeId === id && audioState === 'loading'
@@ -26,7 +29,7 @@ export function AudioButton({ id, text, label, size = 'md' }: AudioButtonProps) 
 
   return (
     <button
-      onClick={() => speak(id, text, language)}
+      onClick={() => speak(id, text, lang)}
       title={isThisPlaying ? 'Stop' : 'Listen'}
       style={{
         display: 'inline-flex',
@@ -34,9 +37,9 @@ export function AudioButton({ id, text, label, size = 'md' }: AudioButtonProps) 
         gap: '6px',
         padding: pad,
         background: isThisPlaying ? T.goldDim : 'transparent',
-        border: `1px solid ${isThisPlaying ? T.gold : T.borderHi}`,
+        border: `1px solid ${isThisPlaying ? T.accent : T.borderHi}`,
         borderRadius: T.rFull,
-        color: isThisPlaying ? T.gold : T.text3,
+        color: isThisPlaying ? T.primary : T.textSecondary,
         fontSize: fs,
         cursor: 'pointer',
         transition: T.tx,

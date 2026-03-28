@@ -3,7 +3,7 @@ import type { CrisisResponse, CrisisScenario, Language } from '../types'
 // Hard-coded, pre-translated crisis responses — work fully offline
 // These are the single most important piece of data in the app
 
-const crisisData: Record<CrisisScenario, Record<Language, CrisisResponse>> = {
+const crisisData: Record<CrisisScenario, Partial<Record<Language, CrisisResponse>>> = {
   arrested: {
     en: {
       scenario: 'arrested',
@@ -339,7 +339,8 @@ const crisisData: Record<CrisisScenario, Record<Language, CrisisResponse>> = {
 }
 
 export function getCrisisResponse(scenario: CrisisScenario, language: Language): CrisisResponse {
-  return crisisData[scenario][language] ?? crisisData[scenario]['en']
+  const row = crisisData[scenario]
+  return row[language] ?? row.en!
 }
 
 export const CRISIS_SCENARIOS: { id: CrisisScenario; emoji: string; labelEn: string }[] = [

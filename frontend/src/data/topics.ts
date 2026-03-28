@@ -63,6 +63,8 @@ export const TOPICS: Topic[] = [
     id: 'housing_property',
     emoji: '🏠',
     title: 'Housing & Property',
+    displayTitle: 'Tenant Rights in Ghana',
+    displaySubtitle: 'What every renter in Ghana should know',
     subtitle: 'Rights against eviction, property seizure, and landlord disputes',
     color: '#f97316',
     articles: ['Article 18(1)', 'Article 20'],

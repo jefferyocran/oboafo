@@ -1,55 +1,86 @@
-import type { AppPage } from '../types'
+import { NavLink } from 'react-router-dom'
 import { T } from '../theme'
 
 interface BottomNavProps {
-  page: AppPage
-  onNavigate: (page: AppPage) => void
+  onOpenLanguage: () => void
 }
 
-const NAV_ITEMS: { page: AppPage; emoji: string; label: string; highlight?: boolean }[] = [
-  { page: 'home',   emoji: '🏠', label: 'Home' },
-  { page: 'browse', emoji: '📚', label: 'Browse' },
-  { page: 'chat',   emoji: '💬', label: 'Ask Oboafo' },
-  { page: 'crisis', emoji: '🆘', label: 'Crisis', highlight: true },
-]
+export function BottomNav({ onOpenLanguage }: BottomNavProps) {
+  const item = (to: string, end: boolean | undefined, emoji: string, label: string) => (
+    <NavLink to={to} end={end} style={{ flex: 1, textDecoration: 'none' }}>
+      {({ isActive }) => (
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 2,
+            minHeight: 56,
+            padding: '8px 4px',
+            background: isActive ? T.goldDim : 'transparent',
+            border: 'none',
+            borderTop: isActive ? `3px solid ${T.accent}` : '3px solid transparent',
+            cursor: 'pointer',
+            color: isActive ? T.primary : T.textMuted,
+            fontFamily: T.fontBody,
+          }}
+        >
+          <span style={{ fontSize: '1.2rem' }} aria-hidden>
+            {emoji}
+          </span>
+          <span style={{ fontSize: 11, fontWeight: isActive ? 700 : 500 }}>{label}</span>
+        </div>
+      )}
+    </NavLink>
+  )
 
-export function BottomNav({ page, onNavigate }: BottomNavProps) {
   return (
-    <nav style={{
-      display: 'flex',
-      borderTop: `1px solid ${T.border}`,
-      background: T.surface,
-      flexShrink: 0,
-    }}>
-      {NAV_ITEMS.map(item => {
-        const active = page === item.page || (page === 'topic' && item.page === 'browse')
-        const color = item.highlight ? T.red : active ? T.gold : T.text3
-        return (
-          <button
-            key={item.page}
-            onClick={() => onNavigate(item.page)}
-            style={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '3px',
-              padding: '10px 4px 8px',
-              background: active ? (item.highlight ? T.redDim : T.goldDim) : 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              transition: T.tx,
-              borderTop: active ? `2px solid ${color}` : '2px solid transparent',
-            }}
-          >
-            <span style={{ fontSize: '1.15rem' }}>{item.emoji}</span>
-            <span style={{ fontSize: '0.65rem', fontWeight: active ? 700 : 400, color, letterSpacing: '0.01em' }}>
-              {item.label}
-            </span>
-          </button>
-        )
-      })}
+    <nav
+      aria-label="Mobile primary"
+      style={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        display: 'flex',
+        borderTop: `1px solid ${T.border}`,
+        background: T.surface,
+        zIndex: 90,
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        boxShadow: '0 -4px 20px rgba(0,0,0,0.06)',
+      }}
+    >
+      {item('/', true, '🏠', 'Home')}
+      {item('/learn', false, '📚', 'Learn')}
+      {item('/ask', false, '💬', 'Ask')}
+      {item('/crisis', false, '🆘', 'Crisis')}
+      <button
+        type="button"
+        onClick={onOpenLanguage}
+        style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 2,
+          minHeight: 56,
+          padding: '8px 4px',
+          background: 'transparent',
+          border: 'none',
+          borderTop: '3px solid transparent',
+          cursor: 'pointer',
+          color: T.textMuted,
+          fontFamily: T.fontBody,
+        }}
+        aria-label="Choose language"
+      >
+        <span style={{ fontSize: '1.2rem' }} aria-hidden>
+          🌐
+        </span>
+        <span style={{ fontSize: 11, fontWeight: 500 }}>Language</span>
+      </button>
     </nav>
   )
 }

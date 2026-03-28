@@ -8,13 +8,13 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'Ghana Constitutional Rights',
-        short_name: 'Ghana Rights',
-        description: 'Know your rights under the 1992 Constitution of Ghana',
+        name: 'Oboafo',
+        short_name: 'Oboafo',
+        description: 'Know your rights. In your language. — Oboafo',
         start_url: '/',
         display: 'standalone',
-        background_color: '#0d1117',
-        theme_color: '#d4a843',
+        background_color: '#FAF7F2',
+        theme_color: '#1B4332',
         icons: [
           {
             src: '/icon-192.png',
@@ -29,7 +29,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,pdf}'],
         runtimeCaching: [
           {
             urlPattern: /\/api\/crisis/,
@@ -44,6 +44,10 @@ export default defineConfig({
           },
           {
             urlPattern: /\/api\/ask/,
+            handler: 'NetworkOnly',
+          },
+          {
+            urlPattern: /\/api\/tts/,
             handler: 'NetworkOnly',
           },
         ],
