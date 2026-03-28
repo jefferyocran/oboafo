@@ -11,7 +11,7 @@ import type {
   TranslateTextResponse,
 } from '../types'
 
-const API_BASE = '/api'
+const API_BASE = import.meta.env.VITE_API_BASE || '/api'
 
 function truncateMessage(s: string, max: number): string {
   const t = s.trim()
