@@ -141,7 +141,8 @@ async def _openai_complete(user_prompt: str) -> str:
     from openai import AsyncOpenAI
 
     api_key = os.getenv("OPENAI_API_KEY")
-    client = AsyncOpenAI(api_key=api_key)
+    timeout = float(os.getenv("LLM_OPENAI_TIMEOUT", "50"))
+    client = AsyncOpenAI(api_key=api_key, timeout=timeout)
 
     async def _call():
         return await client.chat.completions.create(

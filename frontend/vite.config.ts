@@ -33,12 +33,15 @@ export default defineConfig({
         runtimeCaching: [
           {
             urlPattern: /\/api\/crisis/,
-            handler: 'CacheFirst',
+            handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'crisis-cache',
               expiration: {
                 maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+                maxAgeSeconds: 60 * 60 * 24 * 7, // 7 days safety net for offline
+              },
+              cacheableResponse: {
+                statuses: [200],
               },
             },
           },

@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 
 import asyncio
@@ -14,16 +15,15 @@ load_dotenv()
 async def lifespan(app: FastAPI):
     from app.services import rag
 
-    async def _warmup() -> None:
-        try:
-            await asyncio.to_thread(rag.warmup)
-        except Exception as e:
-            import logging
-            logging.getLogger(__name__).error("RAG warmup failed: %s", e)
+    if os.getenv("VERCEL"):
+        # Start warmup in background so /health responds immediately.
+        # query() will await _get_warmup_event() and block until this finishes.
+        asyncio.create_task(rag.warmup_async())
+        yield
+        return
 
-    # Run warmup in background so uvicorn binds the port immediately.
-    # Render kills the process if the port isn't open within the startup timeout.
-    asyncio.create_task(_warmup())
+    await asyncio.to_thread(rag.warmup)
+    rag._get_warmup_event().set()
     yield
 
 
@@ -34,16 +34,18 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+_extra_origins = [o.strip() for o in (os.getenv("CORS_EXTRA_ORIGINS") or "").split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",   # Vite dev server
-        "http://localhost:4173",   # Vite preview
-        "https://ghana-rights.vercel.app",  # Vercel deployment
-        "https://oboafo.onrender.com",      # Render backend (same-origin)
-        "https://oboafo.netlify.app",       # Netlify deployment
+        "http://localhost:5173",
+        "http://localhost:4173",
+        "https://ghana-rights.vercel.app",
+        "https://oboafo.onrender.com",
+        "https://oboafo.netlify.app",
+        *_extra_origins,
     ],
-    allow_credentials=True,
+    allow_origin_regex=r"https://([a-z0-9-]+\.)*vercel\.app",
     allow_methods=["*"],
     allow_headers=["*"],
 )

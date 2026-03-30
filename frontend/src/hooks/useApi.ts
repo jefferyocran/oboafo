@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { API_BASE } from '../config'
 import type {
   AskRequest,
   AskResponse,
@@ -10,8 +11,6 @@ import type {
   TranslateTextRequest,
   TranslateTextResponse,
 } from '../types'
-
-const API_BASE = import.meta.env.VITE_API_BASE || '/api'
 
 function truncateMessage(s: string, max: number): string {
   const t = s.trim()
@@ -110,42 +109,38 @@ export function useAsk() {
 
 export async function translateReply(
   body: TranslateReplyRequest,
-): Promise<TranslateReplyResponse | null> {
-  try {
-    const res = await fetch(`${API_BASE}/translate-reply`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-    if (!res.ok) {
-      throw new Error(`Server error: ${res.status}`)
-    }
-    return (await res.json()) as TranslateReplyResponse
-  } catch {
-    return null
+): Promise<TranslateReplyResponse> {
+  const res = await fetch(`${API_BASE}/translate-reply`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) {
+    throw new Error(
+      res.status === 502
+        ? 'Translation service unavailable. Try switching to English.'
+        : `Translation failed (${res.status}).`,
+    )
   }
+  return (await res.json()) as TranslateReplyResponse
 }
 
 export async function translateText(
   body: TranslateTextRequest,
-): Promise<TranslateTextResponse | null> {
-  try {
-    const res = await fetch(`${API_BASE}/translate-text`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        text: body.text,
-        source: body.source,
-        target: body.target,
-      }),
-    })
-    if (!res.ok) {
-      throw new Error(`Server error: ${res.status}`)
-    }
-    return (await res.json()) as TranslateTextResponse
-  } catch {
-    return null
+): Promise<TranslateTextResponse> {
+  const res = await fetch(`${API_BASE}/translate-text`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: body.text, source: body.source, target: body.target }),
+  })
+  if (!res.ok) {
+    throw new Error(
+      res.status === 502
+        ? 'Translation service unavailable. Try switching to English.'
+        : `Translation failed (${res.status}).`,
+    )
   }
+  return (await res.json()) as TranslateTextResponse
 }
 
 export function useCrisis() {

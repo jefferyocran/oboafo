@@ -12,6 +12,11 @@ _LONG_USER_TEXT = 700
 
 @router.post("/translate-text", response_model=TranslateTextResponse)
 async def translate_text(req: TranslateTextRequest) -> TranslateTextResponse:
+    if not khaya.is_api_key_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="Khaya API key not configured on the server.",
+        )
     text = (req.text or "").strip()
     if not text:
         return TranslateTextResponse(text="")

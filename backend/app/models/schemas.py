@@ -31,7 +31,8 @@ class CrisisRequest(BaseModel):
 class TtsRequest(BaseModel):
     """Text-to-speech via Khaya (en, tw, ee, ga)."""
 
-    text: str = Field(..., min_length=1, max_length=5000)
+    # Full message body for listen; Khaya may enforce its own limits.
+    text: str = Field(..., min_length=1, max_length=200_000)
     language: Language = Language.EN
 
 

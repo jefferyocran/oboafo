@@ -4,17 +4,17 @@
  * Flow:
  * 1. User taps mic → request microphone permission
  * 2. Record audio via MediaRecorder
- * 3. Show animated waveform while recording
- * 4. On stop → display transcription for user confirmation
+ * 3. Send audio to backend /api/transcribe (Khaya ASR)
+ * 4. On transcript result → user confirms
  * 5. On confirm → call onTranscript(text)
  *
- * Uses Web Speech API for transcription (works in Chrome, no backend needed).
- * Falls back to text input message if mic is denied.
+ * Falls back to text input when mic permission is denied or ASR fails.
  */
 import { useState, useRef, useEffect } from 'react'
 import { Waveform } from './Waveform'
 import { T } from '../theme'
 import type { Language } from '../types'
+import { API_BASE } from '../config'
 
 interface VoiceInputProps {
   language: Language
@@ -22,86 +22,141 @@ interface VoiceInputProps {
   disabled?: boolean
 }
 
-// Web Speech API language map
-const SPEECH_LANG: Record<Language, string> = {
-  en: 'en-GH',
-  tw: 'ak-GH',
-  ee: 'ee-GH',
-  ga: 'gaa-GH',
-}
-
-type RecordState = 'idle' | 'recording' | 'confirming' | 'denied'
+type RecordState = 'idle' | 'recording' | 'transcribing' | 'confirming' | 'denied'
 
 export function VoiceInput({ language, onTranscript, disabled }: VoiceInputProps) {
   const [state, setState] = useState<RecordState>('idle')
   const [draft, setDraft] = useState('')
-  const recognitionRef = useRef<SpeechRecognition | null>(null)
+  const [error, setError] = useState<string>('')
+  const recorderRef = useRef<MediaRecorder | null>(null)
+  const chunksRef = useRef<Blob[]>([])
+  const streamRef = useRef<MediaStream | null>(null)
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      recognitionRef.current?.stop()
+      const r = recorderRef.current
+      if (r && r.state !== 'inactive') {
+        r.stop()
+      }
+      streamRef.current?.getTracks().forEach((t) => t.stop())
+      streamRef.current = null
     }
   }, [])
 
-  function startRecording() {
-    const SpeechRecognition =
-      (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition
+  function supportedMimeType(): string | undefined {
+    if (typeof MediaRecorder === 'undefined' || typeof MediaRecorder.isTypeSupported !== 'function') {
+      return undefined
+    }
+    const options = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4']
+    return options.find((m) => MediaRecorder.isTypeSupported(m))
+  }
 
-    if (!SpeechRecognition) {
-      // Browser doesn't support speech recognition
+  async function transcribeBlob(blob: Blob): Promise<void> {
+    const form = new FormData()
+    const ext = blob.type.includes('ogg') ? 'ogg' : blob.type.includes('mp4') ? 'm4a' : 'webm'
+    form.append('audio', blob, `recording.${ext}`)
+
+    const res = await fetch(`${API_BASE}/transcribe?language=${encodeURIComponent(language)}`, {
+      method: 'POST',
+      body: form,
+    })
+    const raw = await res.text()
+    let parsed: { transcript?: string; detail?: string; error?: string } = {}
+    try {
+      parsed = raw ? (JSON.parse(raw) as typeof parsed) : {}
+    } catch {
+      /* keep parsed empty */
+    }
+    if (!res.ok) {
+      const msg = parsed.detail || parsed.error || raw || `Transcription failed (${res.status})`
+      throw new Error(msg)
+    }
+    const text = (parsed.transcript || '').trim()
+    if (!text) {
+      throw new Error('No transcript detected. Try speaking clearly and closer to the mic.')
+    }
+    setDraft(text)
+    setState('confirming')
+  }
+
+  async function startRecording() {
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+      setError('Mic recording is not supported in this browser.')
       setState('denied')
       return
     }
 
-    const recognition = new SpeechRecognition()
-    recognition.lang = SPEECH_LANG[language] ?? 'en-GH'
-    recognition.interimResults = false
-    recognition.maxAlternatives = 1
+    try {
+      setError('')
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      streamRef.current = stream
+      chunksRef.current = []
 
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
-      const text = event.results[0][0].transcript
-      setDraft(text)
-      setState('confirming')
-    }
+      const mimeType = supportedMimeType()
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream)
+      recorderRef.current = recorder
 
-    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-      if (event.error === 'not-allowed') {
-        setState('denied')
-      } else {
-        setState('idle')
+      recorder.ondataavailable = (event: BlobEvent) => {
+        if (event.data.size > 0) chunksRef.current.push(event.data)
       }
-    }
 
-    recognition.onend = () => {
-      if (state === 'recording') setState('idle')
-    }
+      recorder.onstop = () => {
+        const recorded = new Blob(chunksRef.current, {
+          type: recorder.mimeType || 'audio/webm',
+        })
+        stream.getTracks().forEach((t) => t.stop())
+        streamRef.current = null
 
-    recognitionRef.current = recognition
-    recognition.start()
-    setState('recording')
+        if (!recorded.size) {
+          setError('No audio captured. Try again.')
+          setState('idle')
+          return
+        }
+        setState('transcribing')
+        void transcribeBlob(recorded)
+          .catch((e: unknown) => {
+            const msg = e instanceof Error ? e.message : 'Could not transcribe audio.'
+            setError(msg)
+            setState('idle')
+          })
+          .finally(() => {
+            recorderRef.current = null
+            chunksRef.current = []
+          })
+      }
+
+      recorder.start()
+      setState('recording')
+    } catch {
+      setError('Microphone permission denied.')
+      setState('denied')
+    }
   }
 
   function stopRecording() {
-    recognitionRef.current?.stop()
-    setState('idle')
+    const recorder = recorderRef.current
+    if (!recorder) return
+    if (recorder.state !== 'inactive') recorder.stop()
   }
 
   function confirm() {
     onTranscript(draft)
     setDraft('')
+    setError('')
     setState('idle')
   }
 
   function discard() {
     setDraft('')
+    setError('')
     setState('idle')
   }
 
   if (state === 'denied') {
     return (
       <span style={{ fontSize: '0.75rem', color: T.text3, padding: '4px 6px' }}>
-        Mic blocked
+        {error || 'Mic blocked'}
       </span>
     )
   }
@@ -138,32 +193,48 @@ export function VoiceInput({ language, onTranscript, disabled }: VoiceInputProps
   }
 
   const isRecording = state === 'recording'
+  const isTranscribing = state === 'transcribing'
 
   return (
-    <button
-      onClick={isRecording ? stopRecording : startRecording}
-      disabled={disabled}
-      title={isRecording ? 'Stop recording' : 'Speak your question'}
-      style={{
-        width: 48,
-        height: 48,
-        borderRadius: '50%',
-        border: `2px solid ${isRecording ? T.accent : T.borderHi}`,
-        background: isRecording ? T.goldDim : 'transparent',
-        color: isRecording ? T.primary : T.textMuted,
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-        transition: T.tx,
-        opacity: disabled ? 0.4 : 1,
-        position: 'relative',
-        animation: isRecording ? 'pulseRing 1.6s ease-out infinite' : 'none',
-      }}
-    >
-      {isRecording ? <Waveform active barCount={5} color={T.accent} /> : <span style={{ fontSize: '1.15rem' }}>🎙️</span>}
-    </button>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+      <button
+        onClick={isRecording ? stopRecording : startRecording}
+        disabled={disabled || isTranscribing}
+        title={
+          isTranscribing ? 'Transcribing audio...' : isRecording ? 'Stop recording' : 'Speak your question'
+        }
+        style={{
+          width: 48,
+          height: 48,
+          borderRadius: '50%',
+          border: `2px solid ${isRecording ? T.accent : T.borderHi}`,
+          background: isRecording ? T.goldDim : 'transparent',
+          color: isRecording ? T.primary : T.textMuted,
+          cursor: disabled || isTranscribing ? 'not-allowed' : 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+          transition: T.tx,
+          opacity: disabled || isTranscribing ? 0.55 : 1,
+          position: 'relative',
+          animation: isRecording ? 'pulseRing 1.6s ease-out infinite' : 'none',
+        }}
+      >
+        {isRecording ? (
+          <Waveform active barCount={5} color={T.accent} />
+        ) : isTranscribing ? (
+          <span style={{ fontSize: '0.72rem', fontWeight: 700 }}>...</span>
+        ) : (
+          <span style={{ fontSize: '1.15rem' }}>🎙️</span>
+        )}
+      </button>
+      {!isRecording && !isTranscribing && error ? (
+        <span style={{ fontSize: '0.72rem', color: T.text3, maxWidth: 180, textAlign: 'center' }}>
+          {error}
+        </span>
+      ) : null}
+    </div>
   )
 }
 

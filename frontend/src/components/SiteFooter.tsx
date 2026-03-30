@@ -62,6 +62,7 @@ export function SiteFooter() {
                   { kind: 'in' as const, to: '/learn', label: 'Learn' },
                   { kind: 'in' as const, to: '/ask', label: 'Ask Oboafo' },
                   { kind: 'in' as const, to: '/crisis', label: 'Crisis help' },
+                  { kind: 'in' as const, to: '/about', label: 'About' },
                   { kind: 'in' as const, to: '/1992-constitution-of-ghana.pdf', label: '1992 Constitution (PDF)' },
                   {
                     kind: 'out' as const,

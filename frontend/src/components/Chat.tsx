@@ -58,14 +58,21 @@ function loadSessionMessages(): ChatMessage[] {
 }
 
 function persistSessionMessages(messages: ChatMessage[]) {
+  const serializable = messages.map((m) => ({
+    ...m,
+    timestamp: m.timestamp.toISOString(),
+  }))
   try {
-    const serializable = messages.map((m) => ({
-      ...m,
-      timestamp: m.timestamp.toISOString(),
-    }))
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(serializable))
-  } catch {
-    /* ignore quota */
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'QuotaExceededError') {
+      // Trim to last 20 messages and retry
+      try {
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify(serializable.slice(-20)))
+      } catch {
+        console.warn('Session storage full — conversation history not saved.')
+      }
+    }
   }
 }
 
@@ -110,12 +117,12 @@ export function Chat({ language, isOnline, prefillQuestion, onPrefillConsumed }:
       setMessages((prev) =>
         prev.map((m) => (m.id === id ? { ...m, userTranslating: true } : m)),
       )
-      const res = await translateText({
-        text: msg.userCanonicalText,
-        source: msg.userCanonicalLang,
-        target,
-      })
-      if (res?.text) {
+      try {
+        const res = await translateText({
+          text: msg.userCanonicalText,
+          source: msg.userCanonicalLang,
+          target,
+        })
         setMessages((prev) =>
           prev.map((m) =>
             m.id === id
@@ -124,13 +131,17 @@ export function Chat({ language, isOnline, prefillQuestion, onPrefillConsumed }:
                   content: res.text,
                   userDisplayLanguage: target,
                   userTranslating: false,
+                  translationError: undefined,
                 }
               : m,
           ),
         )
-      } else {
+      } catch (e) {
+        const msg2 = e instanceof Error ? e.message : 'Translation failed.'
         setMessages((prev) =>
-          prev.map((m) => (m.id === id ? { ...m, userTranslating: false } : m)),
+          prev.map((m) =>
+            m.id === id ? { ...m, userTranslating: false, translationError: msg2 } : m,
+          ),
         )
       }
     },
@@ -163,26 +174,26 @@ export function Chat({ language, isOnline, prefillQuestion, onPrefillConsumed }:
         return
       }
 
-      const res = await translateReply({
-        answer_english: c.answerEnglish,
-        action_steps_english: c.actionStepsEnglish,
-        disclaimer_english: c.disclaimerEnglish,
-        target,
-      })
-
-      if (res) {
+      try {
+        const res = await translateReply({
+          answer_english: c.answerEnglish,
+          action_steps_english: c.actionStepsEnglish,
+          disclaimer_english: c.disclaimerEnglish,
+          target,
+        })
         const content = formatAssistantBody(res.answer, res.action_steps, res.disclaimer)
         setMessages((prev) =>
           prev.map((m) =>
             m.id === messageId
-              ? { ...m, content, displayLanguage: target, retranslating: false }
+              ? { ...m, content, displayLanguage: target, retranslating: false, translationError: undefined }
               : m,
           ),
         )
-      } else {
+      } catch (e) {
+        const errMsg = e instanceof Error ? e.message : 'Translation failed.'
         setMessages((prev) =>
           prev.map((m) =>
-            m.id === messageId ? { ...m, retranslating: false } : m,
+            m.id === messageId ? { ...m, retranslating: false, translationError: errMsg } : m,
           ),
         )
       }
@@ -538,23 +549,25 @@ export function Chat({ language, isOnline, prefillQuestion, onPrefillConsumed }:
               isOnline={isOnline}
               onRetranslate={handleRetranslate}
               onTranslateUser={handleTranslateUser}
-              onRetry={
-                msg.isError && msg.pairedUserId
-                  ? () => {
-                      const user = messages.find(
-                        (m) => m.id === msg.pairedUserId && m.role === 'user',
-                      )
-                      if (user?.submittedText && user.inputLanguage) {
-                        void sendMessage(user.submittedText, {
-                          retry: true,
-                          language: user.inputLanguage,
-                          removeErrorId: msg.id,
-                          pairedUserId: user.id,
-                        })
-                      }
-                    }
-                  : undefined
-              }
+              onRetry={(() => {
+                if (!msg.isError || !msg.pairedUserId) return undefined
+                const user = messages.find(
+                  (m) =>
+                    m.id === msg.pairedUserId &&
+                    m.role === 'user' &&
+                    !!m.submittedText &&
+                    !!m.inputLanguage,
+                )
+                if (!user) return undefined
+                return () => {
+                  void sendMessage(user.submittedText!, {
+                    retry: true,
+                    language: user.inputLanguage!,
+                    removeErrorId: msg.id,
+                    pairedUserId: user.id,
+                  })
+                }
+              })()}
             />
           ))}
           <div ref={bottomRef} />

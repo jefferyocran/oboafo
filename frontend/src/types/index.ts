@@ -114,6 +114,8 @@ export interface ChatMessage {
   userTranslating?: boolean
   /** Failed assistant turn — show Retry */
   isError?: boolean
+  /** Translation failed — show inline warning */
+  translationError?: string
 }
 
 export const TRANSLATE_REPLY_LANGS: TranslateReplyLanguage[] = ['en', 'tw', 'ee', 'ga']
