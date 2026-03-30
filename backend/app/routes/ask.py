@@ -1,4 +1,5 @@
 import logging
+import asyncio
 
 from fastapi import APIRouter, HTTPException
 from app.models.schemas import AskRequest, AskResponse, Language
@@ -26,6 +27,11 @@ async def ask_question(request: AskRequest) -> AskResponse:
 
     # Step 1: Translate to English if needed
     if original_language != Language.EN:
+        if not khaya.is_api_key_configured():
+            raise HTTPException(
+                status_code=503,
+                detail="Khaya API key not configured on the server.",
+            )
         try:
             user_message = await khaya.translate(
                 text=user_message,
@@ -70,20 +76,24 @@ async def ask_question(request: AskRequest) -> AskResponse:
                     "[Translation unavailable — English response]\n\n" + result.answer
                 )
 
-        new_steps: list[str] = []
-        for step in result.action_steps:
-            try:
-                new_steps.append(
-                    await khaya.translate(
-                        khaya.plain_for_translation(step, max_chars=1500),
-                        "en",
-                        tgt,
-                    )
+        if result.action_steps:
+            step_tasks = [
+                khaya.translate(
+                    khaya.plain_for_translation(step, max_chars=1500),
+                    "en",
+                    tgt,
                 )
-            except Exception as e:
-                logger.warning("Khaya translate (action_step): %s", e)
-                new_steps.append(step)
-        result.action_steps = new_steps
+                for step in result.action_steps
+            ]
+            translated_steps = await asyncio.gather(*step_tasks, return_exceptions=True)
+            new_steps: list[str] = []
+            for step, translated in zip(result.action_steps, translated_steps):
+                if isinstance(translated, Exception):
+                    logger.warning("Khaya translate (action_step): %s", translated)
+                    new_steps.append(step)
+                else:
+                    new_steps.append(translated)
+            result.action_steps = new_steps
 
     return AskResponse(
         answer=result.answer,

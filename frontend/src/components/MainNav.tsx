@@ -84,6 +84,9 @@ export function MainNav() {
             <NavLink to="/crisis" style={navLinkStyle}>
               Crisis
             </NavLink>
+            <NavLink to="/about" style={navLinkStyle}>
+              About
+            </NavLink>
           </nav>
         )}
 

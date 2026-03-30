@@ -1,13 +1,14 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { Language } from '../types'
 
-const STORAGE_KEY = 'oboafo-language-v1'
+// Bump key so old persisted non-English defaults do not override the new English-first startup.
+const STORAGE_KEY = 'oboafo-language-v2'
 
 function readStoredLanguage(): Language | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return null
-    if (raw === 'en' || raw === 'tw' || raw === 'ee' || raw === 'ga' || raw === 'dag') return raw
+    if (raw === 'en' || raw === 'tw' || raw === 'ee' || raw === 'ga') return raw
   } catch {
     /* ignore */
   }

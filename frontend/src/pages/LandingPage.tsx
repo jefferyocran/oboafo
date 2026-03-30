@@ -84,7 +84,7 @@ export function LandingPage() {
               margin: `0 0 ${T.sp(3)}`,
             }}
           >
-            Oboafo helps everyday Ghanaians understand their rights — in Twi, Ga, Ewe, Dagbani, and English.
+            Oboafo helps everyday Ghanaians understand their rights — in Twi, Ga, Ewe, and English.
             Learn at your own pace or ask a question.
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: T.sp(2), marginBottom: T.sp(2) }}>
@@ -188,7 +188,7 @@ export function LandingPage() {
           }}
         >
           <span style={{ fontWeight: 600, color: T.primary }}>Available in:</span>
-          {['English', 'Twi', 'Ga', 'Ewe', 'Dagbani'].map((lang) => (
+          {['English', 'Twi', 'Ga', 'Ewe'].map((lang) => (
             <span
               key={lang}
               style={{

@@ -1,5 +1,5 @@
 """
-POST /api/tts — Text-to-speech via Khaya; returns raw audio (e.g. MP3).
+POST /api/tts — Text-to-speech via Ghana NLP Khaya ``/tts/v1/synthesize``; returns raw audio (typically WAV).
 """
 import logging
 

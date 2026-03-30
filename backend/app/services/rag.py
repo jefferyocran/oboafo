@@ -60,6 +60,16 @@ _embed_lock = asyncio.Lock()
 _bm25: object | None = None
 _bm25_corpus_len: int = -1
 
+# Signals that warmup() has completed; query() awaits this before proceeding.
+_warmup_event: asyncio.Event | None = None
+
+
+def _get_warmup_event() -> asyncio.Event:
+    global _warmup_event
+    if _warmup_event is None:
+        _warmup_event = asyncio.Event()
+    return _warmup_event
+
 # (regex, expansion phrase) — boosts Chapter 5 / common user phrasing → legal vocabulary + article hints.
 _QUERY_EXPANSION_RULES: list[tuple[re.Pattern[str], str]] = [
     (
@@ -159,6 +169,12 @@ def warmup() -> None:
         _ensure_bm25()
     log.info("RAG warmup: ready (%s metadata rows).", len(_metadata))
     print(f"RAG warmup: {EMBEDDING_MODEL!r} + FAISS cached in memory ({len(_metadata)} chunks).")
+
+
+async def warmup_async() -> None:
+    """Run warmup in a background thread and signal readiness (used on Vercel)."""
+    await asyncio.to_thread(warmup)
+    _get_warmup_event().set()
 
 
 def _encode_one(text: str) -> list[float]:
@@ -324,7 +340,7 @@ async def retrieve(queries: str | list[str], k: int | None = None) -> list[dict]
         _, indices = _faiss_index.search(query_vector, n_probe)  # type: ignore[union-attr]
         for rank, idx in enumerate(indices[0]):
             idx = int(idx)
-            if idx == -1 or idx >= len(_metadata):
+            if idx < 0 or idx >= len(_metadata):
                 continue
             r = rank + 1
             prev = best_faiss_rank.get(idx)
@@ -428,6 +444,10 @@ async def query(user_question: str, retrieval_aliases: list[str] | None = None) 
     Full RAG pipeline: retrieve relevant articles, then ask the LLM.
     Returns a structured AskResponse.
     """
+    event = _get_warmup_event()
+    if not event.is_set():
+        await event.wait()
+
     queries = [user_question.strip()]
     if retrieval_aliases:
         for alt in retrieval_aliases:

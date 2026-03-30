@@ -1,15 +1,14 @@
 // Language codes supported by the app
-export type Language = 'en' | 'tw' | 'ee' | 'ga' | 'dag'
+export type Language = 'en' | 'tw' | 'ee' | 'ga'
 
 export const LANGUAGE_LABELS: Record<Language, string> = {
   en: 'English',
   tw: 'Twi',
   ee: 'Ewe',
   ga: 'Ga',
-  dag: 'Dagbani',
 }
 
-export const LANGUAGES: Language[] = ['en', 'tw', 'ee', 'ga', 'dag']
+export const LANGUAGES: Language[] = ['en', 'tw', 'ee', 'ga']
 
 // Crisis scenario IDs
 export type CrisisScenario = 'arrested' | 'police_stop' | 'landlord' | 'employer'
@@ -36,7 +35,7 @@ export type AskResult =
   | { ok: false; error: string; status?: number }
 
 /** Languages Khaya can translate for assistant replies (API-backed) */
-export type TranslateReplyLanguage = 'en' | 'tw' | 'ee' | 'ga' | 'dag'
+export type TranslateReplyLanguage = 'en' | 'tw' | 'ee' | 'ga'
 
 export interface TranslateReplyRequest {
   answer_english: string
@@ -115,9 +114,11 @@ export interface ChatMessage {
   userTranslating?: boolean
   /** Failed assistant turn — show Retry */
   isError?: boolean
+  /** Translation failed — show inline warning */
+  translationError?: string
 }
 
-export const TRANSLATE_REPLY_LANGS: TranslateReplyLanguage[] = ['en', 'tw', 'ee', 'ga', 'dag']
+export const TRANSLATE_REPLY_LANGS: TranslateReplyLanguage[] = ['en', 'tw', 'ee', 'ga']
 
 // Audio playback state
 export type AudioState = 'idle' | 'loading' | 'playing'

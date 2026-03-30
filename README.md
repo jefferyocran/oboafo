@@ -13,6 +13,7 @@ Built for the **Cursor Hackathon**.
 - **Multilingual** — English, Twi (Akan), Ewe, and Ga via [Khaya AI](https://ghananlp.org/).
 - **PWA / Installable** — Works on any phone without an app store. Add to home screen.
 - **Offline First** — Crisis Mode works with zero connectivity. Chat requires internet.
+- **Full constitution PDF** — Bundled copy (audit.gov.gh source) in-app via **PDF** in the header; precached in the PWA for offline reading.
 
 ---
 
@@ -26,6 +27,7 @@ ghana-rights/
 │   │   ├── hooks/      # useApi, useOnlineStatus
 │   │   ├── types/      # Shared TypeScript interfaces
 │   │   └── data/       # Hard-coded crisis responses (offline)
+│   ├── public/         # 1992 constitution PDF (offline precache)
 │   └── vite.config.ts  # PWA config with workbox caching
 └── backend/            # Python FastAPI
     ├── app/
@@ -34,6 +36,7 @@ ghana-rights/
     │   ├── services/   # rag.py, khaya.py, llm.py
     │   └── models/     # Pydantic schemas
     └── data/
+        ├── 1992-constitution-of-ghana.pdf  # Official PDF (audit.gov.gh); offline + ingest source
         ├── constitution.json      # Chunked constitution articles
         ├── crisis_responses.json  # Pre-translated crisis data
         └── faiss_index/           # Generated vector embeddings
@@ -69,6 +72,9 @@ pip install -r requirements.txt
 cp .env.example .env
 # Edit .env with your API keys
 
+# Optional: rebuild constitution.json from the bundled PDF
+python scripts/ingest_pdf.py
+
 # Build the FAISS index (run once before demo)
 python -m app.services.rag --build
 
@@ -84,6 +90,7 @@ uvicorn app.main:app --reload   # http://localhost:8000
 |--------|----------|-------------|
 | `POST` | `/api/ask` | AI-powered legal query (RAG pipeline) |
 | `POST` | `/api/crisis` | Instant hard-coded crisis response |
+| `GET`  | `/api/constitution/pdf` | Download bundled 1992 Constitution PDF |
 | `GET`  | `/health` | Health check |
 
 ### POST `/api/ask`

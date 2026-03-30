@@ -12,6 +12,7 @@ import { LearnPage } from './pages/LearnPage'
 import { TopicRoute } from './pages/TopicRoute'
 import { AskPage } from './pages/AskPage'
 import { CrisisPage } from './pages/CrisisPage'
+import { AboutPage } from './pages/AboutPage'
 import { useOnlineStatus } from './hooks/useOnlineStatus'
 import { useMediaQuery } from './hooks/useMediaQuery'
 import { T } from './theme'
@@ -37,6 +38,7 @@ function AppRoutes() {
         <Route path="/topic/:topicId" element={<TopicRoute />} />
         <Route path="/ask" element={<AskPage />} />
         <Route path="/crisis" element={<CrisisPage />} />
+        <Route path="/about" element={<AboutPage />} />
       </Route>
     </Routes>
   )
@@ -65,7 +67,7 @@ function RootLayout() {
           display: 'flex',
           flexDirection: 'column',
           minHeight: 0,
-          paddingBottom: isMobile ? 64 : 0,
+          paddingBottom: isMobile ? 80 : 0,
         }}
       >
         <Outlet />

@@ -2,6 +2,7 @@
 Re-translate an existing assistant reply (English canonical → Twi/Ewe/Ga) without re-running RAG.
 """
 import logging
+import asyncio
 
 from fastapi import APIRouter, HTTPException
 from app.models.schemas import Language, TranslateReplyRequest, TranslateReplyResponse
@@ -23,6 +24,11 @@ async def translate_reply(req: TranslateReplyRequest) -> TranslateReplyResponse:
             action_steps=list(req.action_steps_english),
             disclaimer=req.disclaimer_english,
         )
+    if not khaya.is_api_key_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="Khaya API key not configured on the server.",
+        )
 
     tgt = req.target.value
     try:
@@ -43,18 +49,22 @@ async def translate_reply(req: TranslateReplyRequest) -> TranslateReplyResponse:
             ) from e2
 
     steps: list[str] = []
-    for step in req.action_steps_english:
-        try:
-            steps.append(
-                await khaya.translate(
-                    khaya.plain_for_translation(step, max_chars=1500),
-                    "en",
-                    tgt,
-                )
+    if req.action_steps_english:
+        step_tasks = [
+            khaya.translate(
+                khaya.plain_for_translation(step, max_chars=1500),
+                "en",
+                tgt,
             )
-        except Exception as step_err:
-            logger.warning("translate_reply step: %s", step_err)
-            steps.append(step)
+            for step in req.action_steps_english
+        ]
+        translated_steps = await asyncio.gather(*step_tasks, return_exceptions=True)
+        for step, translated in zip(req.action_steps_english, translated_steps):
+            if isinstance(translated, Exception):
+                logger.warning("translate_reply step: %s", translated)
+                steps.append(step)
+            else:
+                steps.append(translated)
 
     try:
         disclaimer = await khaya.translate(

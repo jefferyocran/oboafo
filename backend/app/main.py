@@ -13,13 +13,17 @@ load_dotenv()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # On Vercel, skip eager warmup so /health stays fast; RAG loads on first /api/ask.
-    if os.getenv("VERCEL"):
-        yield
-        return
     from app.services import rag
 
+    if os.getenv("VERCEL"):
+        # Start warmup in background so /health responds immediately.
+        # query() will await _get_warmup_event() and block until this finishes.
+        asyncio.create_task(rag.warmup_async())
+        yield
+        return
+
     await asyncio.to_thread(rag.warmup)
+    rag._get_warmup_event().set()
     yield
 
 
@@ -40,7 +44,6 @@ app.add_middleware(
         *_extra_origins,
     ],
     allow_origin_regex=r"https://([a-z0-9-]+\.)*vercel\.app",
-    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )

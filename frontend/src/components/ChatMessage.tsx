@@ -169,6 +169,12 @@ export function ChatMessage({
               </div>
             )}
 
+            {isUser && message.translationError && (
+              <p style={{ margin: '8px 0 0', fontSize: T.caption.size, color: T.red }}>
+                {message.translationError}
+              </p>
+            )}
+
             {isUser && message.userCanonicalText && onTranslateUser && (
               <div
                 style={{
@@ -233,6 +239,12 @@ export function ChatMessage({
                   Retry request
                 </button>
               </div>
+            )}
+
+            {!isUser && message.translationError && (
+              <p style={{ margin: '8px 0 0', fontSize: T.caption.size, color: T.red }}>
+                {message.translationError}
+              </p>
             )}
 
             {!isUser && message.canonical && onRetranslate && (
