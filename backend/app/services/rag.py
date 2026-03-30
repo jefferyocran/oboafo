@@ -60,6 +60,24 @@ _embed_lock = asyncio.Lock()
 _bm25: object | None = None
 _bm25_corpus_len: int = -1
 
+
+def _load_metadata_only() -> None:
+    """Load retrieval corpus metadata without requiring FAISS/embeddings runtime deps."""
+    global _metadata
+    if _metadata:
+        return
+    if FAISS_META_PATH.is_file():
+        with open(FAISS_META_PATH, "r", encoding="utf-8") as f:
+            _metadata = json.load(f)
+        return
+    if CONSTITUTION_PATH.is_file():
+        with open(CONSTITUTION_PATH, "r", encoding="utf-8") as f:
+            _metadata = json.load(f)
+        return
+    raise RuntimeError(
+        f"No retrieval corpus found. Expected {FAISS_META_PATH} or {CONSTITUTION_PATH}."
+    )
+
 # Signals that warmup() has completed; query() awaits this before proceeding.
 _warmup_event: asyncio.Event | None = None
 
@@ -131,7 +149,12 @@ def _get_model():
     """Load sentence-transformers model once and reuse."""
     global _sentence_model
     if _sentence_model is None:
-        from sentence_transformers import SentenceTransformer  # type: ignore
+        try:
+            from sentence_transformers import SentenceTransformer  # type: ignore
+        except Exception as e:
+            raise RuntimeError(
+                "sentence-transformers is not installed; embedding retrieval is unavailable."
+            ) from e
         print(f"Loading embedding model '{EMBEDDING_MODEL}'...")
         _sentence_model = SentenceTransformer(EMBEDDING_MODEL)
     return _sentence_model
@@ -149,8 +172,12 @@ def _load_index():
         with open(FAISS_META_PATH, "r", encoding="utf-8") as f:
             _metadata = json.load(f)
     except Exception as e:
-        raise RuntimeError(
-            f"FAISS index not found. Run: python -m app.services.rag --build\nError: {e}"
+        _faiss_index = None
+        _load_metadata_only()
+        import logging
+
+        logging.getLogger(__name__).warning(
+            "RAG FAISS unavailable; using BM25-only retrieval. reason=%s", e
         )
 
 
@@ -162,13 +189,19 @@ def warmup() -> None:
     import logging
 
     log = logging.getLogger(__name__)
-    log.info("RAG warmup: loading embedding model %r and FAISS index…", EMBEDDING_MODEL)
-    _get_model()
+    log.info("RAG warmup: loading retrieval assets…")
+    try:
+        _get_model()
+    except Exception as e:
+        log.warning("RAG warmup: embeddings unavailable; BM25-only mode. reason=%s", e)
     _load_index()
     if HYBRID_BM25:
         _ensure_bm25()
     log.info("RAG warmup: ready (%s metadata rows).", len(_metadata))
-    print(f"RAG warmup: {EMBEDDING_MODEL!r} + FAISS cached in memory ({len(_metadata)} chunks).")
+    if _faiss_index is not None and _sentence_model is not None:
+        print(f"RAG warmup: {EMBEDDING_MODEL!r} + FAISS cached in memory ({len(_metadata)} chunks).")
+    else:
+        print(f"RAG warmup: BM25-only fallback ready ({len(_metadata)} chunks).")
 
 
 async def warmup_async() -> None:
@@ -223,7 +256,10 @@ def _query_expansion_strings(queries: list[str]) -> list[str]:
 
 def _ensure_bm25() -> None:
     global _bm25, _bm25_corpus_len
-    _load_index()
+    if _faiss_index is None and not _metadata:
+        _load_metadata_only()
+    else:
+        _load_index()
     n = len(_metadata)
     if n == 0:
         return
@@ -310,7 +346,6 @@ async def retrieve(queries: str | list[str], k: int | None = None) -> list[dict]
     """
     k = k if k is not None else TOP_K
     _load_index()
-    import faiss  # type: ignore
 
     if isinstance(queries, str):
         qs = [queries]
@@ -329,29 +364,43 @@ async def retrieve(queries: str | list[str], k: int | None = None) -> list[dict]
             all_qs.append(q)
 
     pool = min(RETRIEVAL_POOL, max(1, len(_metadata)))
-    # Widen FAISS search for hybrid; cap only if RAG_FAISS_PROBE is set (legacy cost control).
-    faiss_probe = int(os.getenv("RAG_FAISS_PROBE", str(pool)))
-    n_probe = min(max(1, faiss_probe), max(1, len(_metadata)))
+    faiss_order: list[int] = []
+    if _faiss_index is not None:
+        # Widen FAISS search for hybrid; cap only if RAG_FAISS_PROBE is set (legacy cost control).
+        faiss_probe = int(os.getenv("RAG_FAISS_PROBE", str(pool)))
+        n_probe = min(max(1, faiss_probe), max(1, len(_metadata)))
 
-    best_faiss_rank: dict[int, int] = {}
-    for q in all_qs:
-        embedding = await _embed(q[:3000])
-        query_vector = np.array([embedding], dtype=np.float32)
-        _, indices = _faiss_index.search(query_vector, n_probe)  # type: ignore[union-attr]
-        for rank, idx in enumerate(indices[0]):
-            idx = int(idx)
-            if idx < 0 or idx >= len(_metadata):
-                continue
-            r = rank + 1
-            prev = best_faiss_rank.get(idx)
-            if prev is None or r < prev:
-                best_faiss_rank[idx] = r
+        best_faiss_rank: dict[int, int] = {}
+        for q in all_qs:
+            embedding = await _embed(q[:3000])
+            query_vector = np.array([embedding], dtype=np.float32)
+            _, indices = _faiss_index.search(query_vector, n_probe)  # type: ignore[union-attr]
+            for rank, idx in enumerate(indices[0]):
+                idx = int(idx)
+                if idx < 0 or idx >= len(_metadata):
+                    continue
+                r = rank + 1
+                prev = best_faiss_rank.get(idx)
+                if prev is None or r < prev:
+                    best_faiss_rank[idx] = r
+        faiss_order = sorted(best_faiss_rank.keys(), key=lambda i: best_faiss_rank[i])
 
-    faiss_order = sorted(best_faiss_rank.keys(), key=lambda i: best_faiss_rank[i])
-
-    use_hybrid = HYBRID_BM25 and len(_metadata) > 0
+    use_hybrid = HYBRID_BM25 and len(_metadata) > 0 and bool(faiss_order)
     if use_hybrid:
         _ensure_bm25()
+
+    if _bm25 is None:
+        _ensure_bm25()
+
+    # If embeddings/FAISS are unavailable in serverless, fall back to lexical BM25-only retrieval.
+    if not faiss_order and _bm25 is not None:
+        qtext = " ".join(all_qs)
+        tokens = _tokenize(qtext)
+        if tokens:
+            scores = _bm25.get_scores(tokens)  # type: ignore[union-attr]
+            order = np.argsort(-np.asarray(scores, dtype=np.float64))[:k]
+            return [_metadata[int(i)] for i in order.tolist()]
+        return _metadata[:k]
 
     if not use_hybrid or _bm25 is None:
         return [_metadata[i] for i in faiss_order[:k]]

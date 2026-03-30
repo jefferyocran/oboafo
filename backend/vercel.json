@@ -1,12 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [{ "source": "/(.*)", "destination": "/index" }],
-  "functions": {
-    "index.py": {
-      "maxDuration": 60,
-      "memory": 2048,
-      "excludeFiles": "{**/scripts/**,**/__pycache__/**,**/*.pyc,**/.venv/**,**/venv/**}"
-    }
-  },
-  "installCommand": "pip install -r requirements.txt && (test -f data/faiss_index/index.faiss && test -f data/faiss_index/metadata.json || python -m app.services.rag --build)"
+  "installCommand": "pip install -r requirements.txt"
 }
