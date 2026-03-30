@@ -51,6 +51,7 @@ def _env_bool(name: str, default: bool) -> bool:
 RETRIEVAL_POOL = int(os.getenv("RAG_RETRIEVAL_POOL", str(max(TOP_K * 8, 32))))
 RRF_K = int(os.getenv("RAG_RRF_K", "60"))
 HYBRID_BM25 = _env_bool("RAG_HYBRID", True)
+BM25_ONLY = _env_bool("RAG_BM25_ONLY", False)
 
 # Lazy-loaded globals
 _faiss_index = None
@@ -190,11 +191,15 @@ def warmup() -> None:
 
     log = logging.getLogger(__name__)
     log.info("RAG warmup: loading retrieval assets…")
-    try:
-        _get_model()
-    except Exception as e:
-        log.warning("RAG warmup: embeddings unavailable; BM25-only mode. reason=%s", e)
-    _load_index()
+    if BM25_ONLY:
+        log.info("RAG_BM25_ONLY=true; skipping embedding model and FAISS.")
+        _load_metadata_only()
+    else:
+        try:
+            _get_model()
+        except Exception as e:
+            log.warning("RAG warmup: embeddings unavailable; BM25-only mode. reason=%s", e)
+        _load_index()
     if HYBRID_BM25:
         _ensure_bm25()
     log.info("RAG warmup: ready (%s metadata rows).", len(_metadata))

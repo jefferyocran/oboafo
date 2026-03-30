@@ -15,15 +15,10 @@ load_dotenv()
 async def lifespan(app: FastAPI):
     from app.services import rag
 
-    if os.getenv("VERCEL"):
-        # Start warmup in background so /health responds immediately.
-        # query() will await _get_warmup_event() and block until this finishes.
-        asyncio.create_task(rag.warmup_async())
-        yield
-        return
-
-    await asyncio.to_thread(rag.warmup)
-    rag._get_warmup_event().set()
+    # Always run warmup in background so uvicorn binds the port immediately.
+    # On memory-constrained hosts (e.g. Render 512MB), the embedding model may
+    # fail to load — rag.py falls back to BM25-only retrieval automatically.
+    asyncio.create_task(rag.warmup_async())
     yield
 
 
