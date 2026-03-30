@@ -41,6 +41,8 @@ app.add_middleware(
         "http://localhost:5173",
         "http://localhost:4173",
         "https://ghana-rights.vercel.app",
+        "https://oboafo.onrender.com",
+        "https://oboafo.netlify.app",
         *_extra_origins,
     ],
     allow_origin_regex=r"https://([a-z0-9-]+\.)*vercel\.app",
